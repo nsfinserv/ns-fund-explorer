@@ -171,11 +171,15 @@ def universe_codes(schemes) -> set[int]:
 
 # --------------------------------------------------------------------------- history
 
-def download_history(frm: dt.date, to: dt.date) -> str:
+def download_history(frm: dt.date, to: dt.date, mf: str | None = None) -> str:
+    """AMFI NAV history report. AMFI now answers a date range only for one fund house at a time
+    (mf = AMFI fund-house id); a range for all fund houses comes back empty."""
     params = {"frmdt": amfi_date(frm)}
+    if mf:
+        params = {"mf": mf, "tp": 1, **params}
     if to != frm:
         params["todt"] = amfi_date(to)
-    return http(f"{PORTAL}/DownloadNAVHistoryReport_Po.aspx", params=params, timeout=300).decode("utf-8", "replace")
+    return http(f"{PORTAL}/DownloadNAVHistoryReport_Po.aspx", params=params, timeout=240, retries=3).decode("utf-8", "replace")
 
 
 def ingest(con, text: str, codes: set[int]) -> tuple[int, set]:
@@ -188,57 +192,65 @@ def ingest(con, text: str, codes: set[int]) -> tuple[int, set]:
     return n, dates
 
 
-def fetch_range(con, frm: dt.date, to: dt.date, codes: set[int]) -> int:
-    """Fetch [frm, to] (<= 90 days). Falls back to one request per weekday if AMFI ignores the end date."""
-    text = download_history(frm, to)
-    n, dates = ingest(con, text, codes)
-    span = (to - frm).days
-    if span > 6 and len(dates) <= 1:
-        log(f"  range request returned {len(dates)} date(s); fetching {frm}..{to} day by day")
-        n = 0
-        d = frm
-        while d <= to:
-            if d.weekday() < 5:
-                try:
-                    k, _ = ingest(con, download_history(d, d), codes)
-                    n += k
-                except RuntimeError as e:
-                    log(f"  {d}: {e}")
-                time.sleep(0.4)
-            d += dt.timedelta(days=1)
-    return n
+def fetch_range(con, frm: dt.date, to: dt.date, codes: set[int], skip: set[str] | None = None,
+                deadline: float | None = None) -> tuple[int, set[str], list[str]]:
+    """Fetch [frm, to] (<= 90 days), one fund house at a time, 3 at once.
+    Returns (NAVs stored, fund-house ids done, names that failed)."""
+    amcs = [(i, n) for i, n in amc_list() if not skip or i not in skip]
+    total, done, failed = 0, set(), []
+
+    def one(item):
+        if deadline and time.time() > deadline:
+            raise TimeoutError("out of time")
+        return download_history(frm, to, item[0])
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(one, a): a for a in amcs}
+        for fu in as_completed(futs):
+            mf, name = futs[fu]
+            try:
+                k, _ = ingest(con, fu.result(), codes)      # writes happen here, on the main thread
+                total += k
+                done.add(mf)
+            except Exception as e:  # noqa: BLE001
+                failed.append(f"{name} ({str(e)[:60]})")
+    return total, done, failed
 
 
 def backfill(start: dt.date, minutes: float):
     schemes = read_json(RAW / "latest.json") or fetch_latest()
     codes = universe_codes(schemes)
     con = open_store()
-    done = set(meta_get(con, "chunks_done", []))
+    # which fund houses are done for each 90-day piece (a new key, so pieces from the old
+    # all-fund-house download, which AMFI no longer answers, are fetched again)
+    done_mf: dict[str, list[str]] = meta_get(con, "history_mf", {})
+    all_mf = {i for i, _ in amc_list()}
     t0 = time.time()
+    deadline = t0 + minutes * 60
     today = dt.date.today()
     chunk = start
     pending = []
     while chunk <= today:
         end = min(chunk + dt.timedelta(days=89), today)
-        if chunk.isoformat() not in done:
+        if not all_mf <= set(done_mf.get(chunk.isoformat(), [])):
             pending.append((chunk, end))
         chunk = end + dt.timedelta(days=1)
-    log(f"history: {len(pending)} of {len(pending) + len(done)} pieces still to fetch")
+    log(f"history: {len(pending)} pieces of 90 days still to fetch ({len(all_mf)} fund houses each)")
     for frm, to in reversed(pending):  # newest first: recent years matter most
-        if (time.time() - t0) / 60 > minutes:
+        if time.time() > deadline:
             log("history: time budget used; the next run continues from here")
             break
-        try:
-            n = fetch_range(con, frm, to, codes)
-            if to < today - dt.timedelta(days=20):   # recent pieces are fetched again next run
-                done.add(frm.isoformat())
-            meta_set(con, "chunks_done", sorted(done))
-            con.commit()
-            log(f"history {frm}..{to}: {n} NAVs")
-        except RuntimeError as e:
-            log(f"history {frm}..{to}: failed ({e}); will retry next run")
-        time.sleep(1.0)
-    remaining = len([p for p in pending if p[0].isoformat() not in done and p[1] < today - dt.timedelta(days=20)])
+        key = frm.isoformat()
+        have = set(done_mf.get(key, []))
+        n, done, failed = fetch_range(con, frm, to, codes, skip=have, deadline=deadline)
+        if to < today - dt.timedelta(days=20):   # recent pieces are fetched again next run
+            done_mf[key] = sorted(have | done)
+        meta_set(con, "history_mf", done_mf)
+        con.commit()
+        log(f"history {frm}..{to}: {n} NAVs from {len(done)} fund houses"
+            + (f"; {len(failed)} to retry: {', '.join(failed[:3])}" if failed else ""))
+    remaining = len([1 for frm, to in pending
+                     if to < today - dt.timedelta(days=20) and not all_mf <= set(done_mf.get(frm.isoformat(), []))])
     meta_set(con, "history_remaining", remaining)
     con.commit()
     con.close()
@@ -252,11 +264,9 @@ def recent(days: int = 12):
     con = open_store()
     store_put(con, [(s["code"], dt.date.fromisoformat(s["date"]), s["nav"]) for s in schemes if s["code"] in codes])
     today = dt.date.today()
-    try:
-        n = fetch_range(con, today - dt.timedelta(days=days), today, codes)
-        log(f"recent {days} days: {n} NAVs")
-    except RuntimeError as e:
-        log(f"recent days: {e} (latest NAVs were still saved)")
+    n, done, failed = fetch_range(con, today - dt.timedelta(days=days), today, codes)
+    log(f"recent {days} days: {n} NAVs from {len(done)} fund houses"
+        + (f" ({len(failed)} failed; latest NAVs were still saved)" if failed else ""))
     con.commit()
     last = con.execute("SELECT MAX(d) FROM nav").fetchone()[0]
     con.close()
@@ -510,8 +520,9 @@ def fetch_perf():
 def diagnose():
     tests = [
         ("latest NAV (portal)", lambda: http(f"{PORTAL}/spages/NAVAll.txt")[:400]),
-        ("NAV history, 10 days", lambda: download_history(dt.date.today() - dt.timedelta(days=12),
-                                                           dt.date.today() - dt.timedelta(days=2))[:400]),
+        ("NAV history, 10 days, one fund house", lambda: download_history(dt.date.today() - dt.timedelta(days=12),
+                                                                          dt.date.today() - dt.timedelta(days=2),
+                                                                          amc_list()[0][0])[:400]),
         ("TER months", lambda: http(f"{WWW}/api/populate-ter-month", params={"year": fin_year(dt.date.today())},
                                     referer="ter-of-mf-schemes")[:400]),
         ("TER, one fund house, page 1", lambda: http(f"{WWW}/api/populate-te-rdata-revised",
