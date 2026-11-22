@@ -1,4 +1,7 @@
-name: Update fund data
+name: Update market strip
+
+# Publishes only data/market.json (and a page that sends visitors to nsfinancialservices.co.in).
+# The fund explorer pages are no longer published.
 
 on:
   schedule:
@@ -7,18 +10,18 @@ on:
   workflow_dispatch:         # lets you run it by hand from the Actions tab
 
 permissions:
-  contents: write
+  contents: write            # only for the weekly marker that keeps the schedule switched on
   pages: write
   id-token: write
 
 concurrency:
-  group: fund-data
+  group: market-strip
   cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 345
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -29,65 +32,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install
-        run: pip install -r requirements.txt
-
-      - name: Restore saved NAV history
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            data/store
-            data/raw
-          key: navstore-${{ github.run_id }}
-          restore-keys: navstore-
-
-      - name: Download today's data from AMFI
-        run: python scripts/amfi_fetch.py daily
-
-      - name: AMFI risk data for mid and small cap funds
-        run: python scripts/amfi_risk.py
-        continue-on-error: true
-
-      - name: Portfolios - which fund houses still need last month's file
-        id: pf
-        run: python scripts/portfolio_fetch.py pending
-        continue-on-error: true
-
-      - name: Portfolios - download from fund house websites
-        if: steps.pf.outputs.pending != '0'
-        run: |
-          python -m playwright install --with-deps chromium
-          python scripts/portfolio_fetch.py
-        env:
-          PF_MINUTES: "40"
-        timeout-minutes: 55
-        continue-on-error: true
-
-      - name: Portfolios - read the files (and anything in portfolios/inbox)
-        run: python scripts/portfolio_parse.py --all
-        continue-on-error: true
-
-      - name: Fill in older NAV history (continues where it stopped)
-        run: python scripts/amfi_fetch.py history --minutes 200
-        continue-on-error: true
-
-      - name: Save NAV history
-        if: always()
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            data/store
-            data/raw
-          key: navstore-${{ github.run_id }}
-
-      - name: Build dashboard data
-        run: python scripts/build_data.py
+      - name: Market strip figures from AMFI NAVs
+        run: python scripts/market.py
 
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: out
 
       - id: deploy
         uses: actions/deploy-pages@v5
