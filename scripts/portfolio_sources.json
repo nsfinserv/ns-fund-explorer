@@ -1,5 +1,5 @@
 {
- "_about": "Where each fund house publishes its monthly portfolio. Found on AMFI's Portfolio Disclosure page (amfiindia.com/online-center/portfolio-disclosure). 'include' and 'exclude' are optional extra regex filters on the file link; 'checked' means the robot's method was confirmed by hand on that date.",
+ "_about": "Where each fund house publishes its monthly portfolio. Found on AMFI's Portfolio Disclosure page (amfiindia.com/online-center/portfolio-disclosure). 'include' and 'exclude' are optional extra regex filters on the file link; 'checked' means the robot's method was confirmed by hand on that date. Optional per fund house: 'steps' done like a visitor before collecting links - {'click': 'text'}, {'choose': {'field': 'dropdown label', 'option': '{Month}'}}, {'wait': ms}; words {Month} {Mon} {YYYY} {MM} mean last month.",
  "exclude_default": "fortnight|mid[- ]?month|half[- ]?year|semi[- ]?annual|factsheet|fact[- ]sheet|fundamentals|risk[- ]?parameter|riskometer|risk[- ]?o[- ]?meter|annual[- ]report|\\bter\\b|scheme[- ]performance|\\bsid\\b|\\bkim\\b|\\bsai\\b|notice|addendum|overlap|stress[- ]test|scheme[- ]information|dividend[- ]history|idcw[- ]history|financials|brsr|voting|commission|unclaimed|nav[- ]history|debt[- ]schemes?[- ]portfolio",
  "amcs": [
   {
@@ -43,7 +43,26 @@
    "mf_id": "53",
    "name": "Axis Mutual Fund",
    "slug": "axis",
-   "url": "https://www.axismf.com/statutory-disclosures"
+   "url": "https://www.axismf.com/statutory-disclosures",
+   "steps": [
+    {
+     "click": "^\\s*8\\. Portfolios\\s*$"
+    },
+    {
+     "choose": {
+      "field": "Select a Year",
+      "option": "{YYYY}"
+     }
+    },
+    {
+     "choose": {
+      "field": "Select a Month",
+      "option": "{Month}"
+     }
+    }
+   ],
+   "include": "monthly portfolio",
+   "checked": "2026-11-22 (opens '8. Portfolios', picks the month; files come from the page's own data)"
   },
   {
    "mf_id": "75",
