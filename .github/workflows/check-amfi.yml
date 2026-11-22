@@ -1,0 +1,15 @@
+name: Check AMFI sources
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Try every AMFI source and print what came back
+        run: python scripts/amfi_fetch.py diagnose
