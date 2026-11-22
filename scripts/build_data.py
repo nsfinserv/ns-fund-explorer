@@ -22,6 +22,7 @@ from common import (DATA, RAW, SITE_DATA, amc_key, asset_kind, clean_name, dedup
                     sub_name, sub_rank, write_json, GROUP_ORDER)
 import ratios as RT  # noqa: E402
 from namematch import best_match  # noqa: E402
+import namematch as NM  # noqa: E402
 from portfolio_build import attach as attach_portfolios  # noqa: E402
 
 PLANS_SHOWN = ("R",)                   # NS Financial Services shows regular plans only
@@ -356,6 +357,20 @@ def main():
     perf = (read_json(RAW / "perf.json") or {})
     ter_idx = index_rows(ter.get("rows"))
     aum_idx = index_rows(aum.get("rows"))
+    # TER names are fund names without plan words; keep a per-fund-house list for a strict fuzzy fallback
+    ter_names = defaultdict(dict)
+    for r in ter.get("rows") or []:
+        ter_names[amc_key(r.get("amc") or "")].setdefault(r.get("name") or "", {})[r.get("plan")] = r
+    # Fund size: AMFI lists every plan and option by its AMFI code. Find the fund's own code, then add up
+    # all plans and options of that fund (same fund house, same AMFI category, same name without plan words).
+    aum_code, aum_total = {}, defaultdict(float)
+    for r in aum.get("rows") or []:
+        if r.get("aum") is None:
+            continue
+        g = (amc_key(r.get("amc") or ""), r.get("cat") or "", NM.norm(r.get("name") or ""))
+        aum_total[g] += float(r["aum"])
+        if r.get("code") is not None:
+            aum_code[str(r["code"])] = g
     perf_rows = perf.get("rows") or []
     perf_idx = index_rows(perf_rows)
     perf_code = {str(r.get("code")): r for r in perf_rows if r.get("code")}
@@ -439,12 +454,21 @@ def main():
         if s.get("isin"):
             f["isin"] = s["isin"]
         t, _ = lookup(ter_idx, s, p if p != "E" else None)
+        if not t and p in ("R", "D"):
+            names = ter_names.get(amc_key(s["amc"])) or {}
+            hit, _sc = best_match(s["name"], {n: n for n in names}, s["amc"], threshold=0.85) if names else (None, 0)
+            t = names.get(hit, {}).get(p) if hit else None
         if t and t.get("ter") is not None:
             f["ter"] = r1(t["ter"], 2)
-        a_, lvl = lookup(aum_idx, s, p if p != "E" else None)
-        if a_ and a_.get("aum") is not None:
-            f["aum"] = r1(a_["aum"], 0)
-            f["al"] = lvl
+        g_ = aum_code.get(str(code))
+        if g_ is not None and aum_total.get(g_):
+            f["aum"] = r1(aum_total[g_], 0)
+            f["al"] = "f"
+        else:
+            a_, lvl = lookup(aum_idx, s, p if p != "E" else None)
+            if a_ and a_.get("aum") is not None:
+                f["aum"] = r1(a_["aum"], 0)
+                f["al"] = lvl
         pr = perf_code.get(str(code)) or lookup(perf_idx, s, p if p != "E" else None)[0]
         if pr:
             if pr.get("benchmark"):
