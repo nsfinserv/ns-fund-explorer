@@ -8,6 +8,9 @@ on:
         required: false
         default: ""
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -28,4 +31,6 @@ jobs:
         run: python scripts/portfolio_fetch.py marketcap
         continue-on-error: true
       - name: What the robot finds on each fund house page (downloads nothing)
-        run: python scripts/portfolio_fetch.py diagnose "${{ github.event.inputs.fund_house }}"
+        env:
+          FUND_HOUSE: ${{ github.event.inputs.fund_house }}
+        run: python scripts/portfolio_fetch.py diagnose "$FUND_HOUSE"
