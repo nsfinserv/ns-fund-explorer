@@ -15,6 +15,7 @@ AMC file to the AMFI scheme, and works out:
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 from collections import defaultdict
@@ -230,7 +231,8 @@ def attach(funds: list[dict], amcs: list[str]) -> tuple[dict, dict, dict]:
     report = {"amcs": {}, "unmatched": [], "mcap": mperiod}
 
     def take(key, cands, amc_name):
-        months = sorted(store.get(key, {}), reverse=True)
+        now = dt.date.today().strftime("%Y-%m")
+        months = sorted((m for m in store.get(key, {}) if m <= now), reverse=True)
         if not months:
             return
         cur_m = months[0]
