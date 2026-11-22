@@ -41,6 +41,50 @@ EVENTS = [
     {"n": "2024-25 correction", "s": "2024-09-25", "e": "2025-04-30"},
 ]
 
+# Market strip on the website: each index's day's change on the last trading day, worked out as the
+# median day's change in NAV of the regular-plan index funds that track it (AMFI NAVs only).
+MARKET = [
+    ("Nifty 50", r"\bnifty 50\b", r"next|equal|weight|value|alpha|vol|quality|momentum|shariah|dividend|arbitrage|top"),
+    ("Sensex", r"\bsensex\b", r"next|50|100|200|500"),
+    ("Nifty Next 50", r"\bnifty next 50\b", r"equal|weight"),
+    ("Nifty 500", r"\bnifty 500\b", r"multicap|momentum|value|quality|equal|weight|shariah|vol|alpha|\d+:\d+"),
+    ("Nifty Bank", r"\bnifty bank\b", r"psu|private|equal"),
+    ("Nifty Midcap 150", r"\bnifty midcap 150\b", r"momentum|quality|value|alpha"),
+    ("Nifty Smallcap 250", r"\bnifty smallcap 250\b", r"momentum|quality|value|alpha"),
+]
+
+
+def market_name(n: str) -> str:
+    n = n.lower().replace("&", " and ")
+    n = re.sub(r"nifty\s*50\b", "nifty 50", n)
+    n = re.sub(r"\bmid\s+cap\b", "midcap", n)
+    n = re.sub(r"\bsmall\s+cap\b", "smallcap", n)
+    n = re.sub(r"\b(midcap|smallcap|next)\s*(\d+)", r"\1 \2", n)
+    return re.sub(r"\s+", " ", n)
+
+
+def market_strip(moves: list[tuple[str, int, int, float]]) -> dict | None:
+    """moves: (fund name, previous NAV day, last NAV day, day's change). Uses only funds priced on the most
+    common last day, against the most common previous day, so every figure is for the same trading day."""
+    from collections import Counter
+    if not moves:
+        return None
+    last = Counter(m[2] for m in moves).most_common(1)[0][0]
+    prevs = [m[1] for m in moves if m[2] == last]
+    prev = Counter(prevs).most_common(1)[0][0]
+    items = []
+    for label, inc, exc in MARKET:
+        vals = [m[3] for m in moves if m[2] == last and m[1] == prev
+                and re.search(inc, market_name(m[0])) and not re.search(exc, market_name(m[0])) and abs(m[3]) < 0.2]
+        if vals:
+            items.append({"n": label, "c": round(float(np.median(vals)) * 100, 2), "k": len(vals)})
+    if not items:
+        return None
+    return {"date": iso(last), "prev": iso(prev), "items": items,
+            "src": "Day's change, worked out from AMFI NAV data at the end of the day",
+            "note": "Not live index values. For education only."}
+
+
 INDEX_PROXY = [
     ("large & mid", r"large\s*mid\s*cap\s*250|largemidcap\s*250"),
     ("large and mid", r"large\s*mid\s*cap\s*250|largemidcap\s*250"),
@@ -429,6 +473,7 @@ def main():
     m_grid0 = int(months_of(np.array([rows_min]))[0])
 
     funds, details, monthly, month_nav = [], {}, {}, {}
+    day_moves = []
     fixes_total = 0
     for s in schemes:
         code = int(s["code"])
@@ -447,6 +492,8 @@ def main():
         sub = sub_name(s["category"])
         kind = asset_kind(g, sub, s["name"])
         H = horizon_for(g, sub, kind)
+        if g == "Index funds" and kind == "equity" and len(d) >= 2 and v[-2] > 0:
+            day_moves.append((clean_name(s["name"]), int(d[-2]), int(d[-1]), float(v[-1] / v[-2] - 1)))
         m, det, mr, full_m, mnav = fund_metrics(d, v, H, m_grid0)
         f = {"id": code, "n": clean_name(s["name"]), "a": amc_ids[s["amc"]], "c": cat_ids[s["_cat"]], "p": p,
              "nav": sig4(v[-1]), "nd": iso(int(d[-1])), "st": iso(int(d[0])),
@@ -728,6 +775,10 @@ def main():
         "fixes": fixes_total,
     }
     write_json(out_dir / "funds.json", {"meta": meta, "funds": funds})
+    mk = market_strip(day_moves)
+    if mk:
+        write_json(out_dir / "market.json", mk, compact=False)
+        print("market strip: " + ", ".join(f"{x['n']} {x['c']:+.2f}% ({x['k']})" for x in mk["items"]) + f" on {mk['date']}")
     size = sum(p.stat().st_size for p in out_dir.rglob("*.json"))
     print(f"built {len(funds)} schemes in {len(cats_out)} categories, {len(amcs)} AMCs, data to {data_date}; "
           f"{size / 1e6:.1f} MB; {fixes_total} NAV fixes")
