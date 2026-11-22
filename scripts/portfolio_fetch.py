@@ -70,8 +70,10 @@ def month_in(text: str) -> str | None:
     s = unquote(text).lower().replace("_", " ").replace("-", " ").replace("%20", " ")
     s = re.sub(r"\s+", " ", s)
 
-    def ok(y, m):
-        return 2015 <= y <= 2100 and 1 <= m <= 12
+    today = dt.date.today()
+
+    def ok(y, m):   # a real month, and not in the future
+        return 2015 <= y and 1 <= m <= 12 and (y, m) <= (today.year, today.month)
 
     tiers = []
     named = []
@@ -79,7 +81,7 @@ def month_in(text: str) -> str | None:
         named.append((int(yy), MONTHS.index(mm[:3]) + 1))
     for dd, mm, yy in re.findall(r"\b(\d{1,2})(?:st|nd|rd|th)? ?" + MON_RE + r" ?(\d{4}|\d{2})\b(?! ?\d)", s):  # 31 Oct 26
         named.append((int(yy) + (2000 if len(yy) == 2 else 0), MONTHS.index(mm[:3]) + 1))
-    for mm, yy in re.findall(MON_RE + r"[ ,.']*(\d{4}|\d{2})\b(?! ?\d)", s):                    # October 2026 / Oct 26
+    for mm, yy in re.findall(MON_RE + r"[ ,.']*(\d{4}|\d{2})\b(?![ ,.']*\d)", s):              # October 2026 / Oct 26
         named.append((int(yy) + (2000 if len(yy) == 2 else 0), MONTHS.index(mm[:3]) + 1))
     tiers.append(named)
     tiers.append([(int(y), int(m)) for d, m, y in re.findall(r"\b(\d{2}) ?(\d{2}) ?(20\d{2})\b", s) if 1 <= int(d) <= 31])
@@ -189,7 +191,12 @@ def have_month(slug: str, month: str) -> bool:
 
 def pending(state: dict) -> list[dict]:
     exp = expected_month()
-    return [a for a in CFG["amcs"] if state.get(a["slug"], {}).get("month", "") < exp]
+    now = dt.date.today().strftime("%Y-%m")
+
+    def have(a):
+        m = state.get(a["slug"], {}).get("month", "")
+        return exp <= m <= now        # a month after today is a misread date, not a download
+    return [a for a in CFG["amcs"] if not have(a)]
 
 
 def run(diagnose: bool = False, only: str | None = None):
