@@ -15,11 +15,15 @@ import argparse
 import datetime as dt
 import gzip
 import json
+import os
+import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
 from common import (RAW, amfi_date, meta_get, meta_set, num_day, open_store, parse_nav_text,  # noqa: E402
@@ -267,71 +271,163 @@ def fin_year(d: dt.date) -> str:
     return f"{y}-{y + 1}"
 
 
-def fetch_ter():
-    out = []
+TER_PAGE = 100          # AMFI returns at most 100 rows per page
+MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+
+
+def amc_list() -> list[tuple[str, str]]:
+    """AMFI fund-house ids (the same MF_ID AMFI uses on every page) from portfolio_sources.json."""
+    src = read_json(Path(__file__).with_name("portfolio_sources.json")) or {}
+    return [(str(a["mf_id"]), a["name"]) for a in src.get("amcs", []) if a.get("mf_id")]
+
+
+def ter_month(today: dt.date) -> str:
+    """TER is taken for the last complete month, as 'MM-YYYY' (AMFI's own format)."""
+    prev = today.replace(day=1) - dt.timedelta(days=1)
+    return f"{prev.month:02d}-{prev.year}"
+
+
+def ter_rows_for(mf_id: str, amc: str, month: str, deadline: float) -> list[dict]:
+    """All TER rows of one fund house for one month, keeping each scheme's last day."""
+    latest: dict[str, dict] = {}
+    page, pages = 1, 1
+    while page <= pages:
+        if time.time() > deadline:
+            raise TimeoutError("out of time")
+        data = http_json(f"{WWW}/api/populate-te-rdata-revised",
+                         params={"MF_ID": mf_id, "Month": month, "strCat": "-1", "strType": "-1",
+                                 "page": page, "pageSize": TER_PAGE},
+                         referer="ter-of-mf-schemes", timeout=120)
+        if not isinstance(data, dict) or data.get("error"):
+            raise RuntimeError(str(data.get("message") if isinstance(data, dict) else data)[:200])
+        pages = int((data.get("meta") or {}).get("pageCount") or 1)
+        for rec in data.get("data") or []:
+            key = rec.get("NSDLSchemeCode") or rec.get("Scheme_Name")
+            if key and (key not in latest or str(rec.get("TER_Date")) > str(latest[key].get("TER_Date"))):
+                latest[key] = rec
+        page += 1
+        time.sleep(0.2)
+    rows = []
+    for rec in latest.values():
+        name = rec.get("Scheme_Name")
+        if not name:
+            continue
+        for plan, field in (("R", "R_TER"), ("D", "D_TER")):
+            v = to_float(rec.get(field))
+            if v is not None and 0 < v < 5:
+                rows.append({"name": name, "amc": amc, "mf": mf_id, "plan": plan, "ter": v,
+                             "date": str(rec.get("TER_Date") or "")[:10], "isin": None})
+    return rows
+
+
+def fetch_ter(minutes: float | None = None):
+    """Expense ratios from AMFI 'TER of MF Schemes', one fund house at a time.
+
+    AMFI times out when asked for all fund houses at once, and sends one row per scheme per day,
+    100 rows a page. So this runs once a month (for the last complete month), resumes where it
+    stopped if it runs out of time, and keeps each scheme's TER on the month's last day.
+    """
+    minutes = float(os.environ.get("TER_MINUTES", 25)) if minutes is None else minutes
     today = dt.date.today()
-    months = []
-    for fy in (fin_year(today), fin_year(today - dt.timedelta(days=200))):
+    month = ter_month(today)
+    old = read_json(RAW / "ter.json") or {}
+    if old.get("month") == month and old.get("complete"):
+        log(f"TER: already have {month}")
+        return
+    listed = []
+    for fy in sorted({fin_year(today), fin_year(today.replace(day=1) - dt.timedelta(days=1))}):
         try:
             m = http_json(f"{WWW}/api/populate-ter-month", params={"year": fy}, referer="ter-of-mf-schemes")
             m = m.get("data", m) if isinstance(m, dict) else m
-            months += [x.get("MonthNumber") or x.get("monthNumber") for x in m if isinstance(x, dict)]
+            listed += [str(x.get("MonthNumber")) for x in m if isinstance(x, dict) and x.get("MonthNumber")]
         except Exception as e:  # noqa: BLE001
             log(f"TER months {fy}: {e}")
-    months = [m for m in months if m]
-    for month in months[:2]:
-        try:
-            data = http_json(f"{WWW}/api/populate-te-rdata-revised",
-                             params={"MF_ID": "All", "Month": month, "strCat": "-1", "strType": "-1"},
-                             referer="ter-of-mf-schemes", timeout=300)
-        except Exception as e:  # noqa: BLE001
-            log(f"TER {month}: {e}")
-            continue
-        for rec in records_in(data):
-            name = pick(rec, "Scheme_Name", "SchemeName", "scheme_name", contains=("scheme", "name"))
-            amc = pick(rec, "MF_Name", "MutualFundName", "mf_name", contains=("mf", "name"))
-            isin = pick(rec, "ISIN", contains=("isin",))
-            date = pick(rec, "TER_Date", "Date", contains=("date",))
-            reg = to_float(pick(rec, contains=("regular", "total"), avoid=("base", "addl", "gst")))
-            dirr = to_float(pick(rec, contains=("direct", "total"), avoid=("base", "addl", "gst")))
-            tot = to_float(pick(rec, "TER_total", "Total_TER", "TotalTER", "TER"))
-            if not name:
-                continue
-            if reg is not None or dirr is not None:
-                if reg is not None:
-                    out.append({"name": name, "amc": amc, "plan": "R", "ter": reg, "date": date, "isin": None})
-                if dirr is not None:
-                    out.append({"name": name, "amc": amc, "plan": "D", "ter": dirr, "date": date, "isin": None})
-            elif tot is not None:
-                out.append({"name": name, "amc": amc, "plan": None, "ter": tot, "date": date, "isin": isin})
-        if out:
-            log(f"TER: {len(out)} records for {month}")
-            break
-    if out:
-        write_json(RAW / "ter.json", {"month": month, "fetched": today.isoformat(), "rows": out})
+    if listed and month not in listed:
+        log(f"TER: AMFI has not listed {month} yet; keeping previous file if any")
+        return
+    part_path = RAW / "ter_partial.json"
+    part = read_json(part_path) or {}
+    if part.get("month") != month:
+        part = {"month": month, "done": {}}
+    amcs = amc_list()
+    todo = [(i, n) for i, n in amcs if i not in part["done"]]
+    deadline = time.time() + minutes * 60
+    failed = []
+
+    def one(item):
+        mf_id, name = item
+        return mf_id, ter_rows_for(mf_id, name, month, deadline)
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(one, it): it for it in todo}
+        for fu in as_completed(futs):
+            mf_id, name = futs[fu]
+            try:
+                _, rows = fu.result()
+                part["done"][mf_id] = rows
+            except Exception as e:  # noqa: BLE001
+                failed.append(name)
+                log(f"TER {name}: {e}")
+    write_json(part_path, part)
+    complete = len(part["done"]) >= len(amcs)
+    rows = []
+    if old.get("rows") and not complete:
+        # until every fund house is in, keep the older month's rows for the ones still missing
+        rows = [r for r in old["rows"] if str(r.get("mf")) not in part["done"]]
+    rows += [r for v in part["done"].values() for r in v]   # newer rows last, so they win when matched
+    if rows:
+        write_json(RAW / "ter.json", {"month": month, "fetched": today.isoformat(), "complete": complete,
+                                      "rows": rows})
+        log(f"TER: {len(rows)} rows for {month}, {len(part['done'])} of {len(amcs)} fund houses"
+            + (f"; will retry {', '.join(failed[:5])}{'...' if len(failed) > 5 else ''}" if failed else ""))
     else:
         log("TER: nothing usable; keeping previous file if any")
 
 
 # --------------------------------------------------------------------------- fund size (average AUM)
 
+def newest_first(items: list[dict], label: str) -> list[dict]:
+    """AMFI numbers its years and quarters newest = 1. Sort by the dates in the label, then by that id."""
+    def key(x):
+        t = str(x.get(label) or "").lower()
+        years = [int(y) for y in re.findall(r"20\d\d", t)]
+        mons = [i for i, m in enumerate(MONTHS) if m in t]
+        last_mon = max(((t.rfind(MONTHS[i]), i) for i in mons), default=(-1, -1))[1]
+        return (max(years) if years else 0, last_mon, -int(x["id"]))
+    return sorted([x for x in items if isinstance(x, dict) and x.get("id") is not None], key=key, reverse=True)
+
+
+def aum_rows_from(data) -> list[dict]:
+    """AMFI 'average-aum-schemewise': [{Mfname, SchemeCat_Desc, schemes:[{SchemeNAVName, AMFI_Code,
+    AverageAumForTheMonth:{...}}]}], amounts in Rs lakh. Returns one row per plan/option, in Rs crore."""
+    groups = data.get("data") if isinstance(data, dict) else data
+    rows = []
+    for g in groups or []:
+        if not isinstance(g, dict) or not isinstance(g.get("schemes"), list):
+            continue
+        for s in g["schemes"]:
+            v = s.get("AverageAumForTheMonth")
+            lakh = sum(to_float(x) or 0 for x in v.values()) if isinstance(v, dict) else to_float(v)
+            name = s.get("SchemeNAVName") or s.get("SchemeName")
+            if name and lakh is not None and lakh >= 0:
+                rows.append({"code": s.get("AMFI_Code"), "name": name, "amc": g.get("Mfname"),
+                             "cat": g.get("SchemeCat_Desc"), "aum": round(lakh / 100, 2)})
+    return rows
+
+
 def fetch_aum():
+    ref = "research-information/aum-data/average-aum"
     try:
-        fys = http_json(f"{WWW}/api/average-aum-fundwise", referer="research-information/aum-data/average-aum")
-        fys = fys.get("data", fys) if isinstance(fys, dict) else fys
-        fys = [f for f in fys if isinstance(f, dict) and f.get("id") is not None]
-        fys.sort(key=lambda f: int(f["id"]), reverse=True)
+        fys = http_json(f"{WWW}/api/average-aum-fundwise", referer=ref)
+        fys = newest_first(fys.get("data", fys) if isinstance(fys, dict) else fys, "financial_year")
     except Exception as e:  # noqa: BLE001
         log(f"AUM years: {e}")
         return
     for fy in fys[:2]:
         try:
-            per = http_json(f"{WWW}/api/average-aum-fundwise", params={"fyId": fy["id"]},
-                            referer="research-information/aum-data/average-aum")
+            per = http_json(f"{WWW}/api/average-aum-fundwise", params={"fyId": fy["id"]}, referer=ref)
             per = per.get("data", per) if isinstance(per, dict) else per
-            periods = per.get("periods", []) if isinstance(per, dict) else per
-            periods = sorted([p for p in periods if isinstance(p, dict) and p.get("id") is not None],
-                             key=lambda p: int(p["id"]), reverse=True)
+            periods = newest_first(per.get("periods", []) if isinstance(per, dict) else per, "period")
         except Exception as e:  # noqa: BLE001
             log(f"AUM periods: {e}")
             continue
@@ -339,22 +435,17 @@ def fetch_aum():
             try:
                 data = http_json(f"{WWW}/api/average-aum-schemewise",
                                  params={"strType": "Categorywise", "fyId": fy["id"], "periodId": p["id"], "MF_ID": "0"},
-                                 referer="research-information/aum-data/average-aum", timeout=300)
+                                 referer=ref, timeout=300)
             except Exception as e:  # noqa: BLE001
                 log(f"AUM {fy.get('financial_year')} {p.get('period')}: {e}")
                 continue
-            rows = []
-            for rec in records_in(data):
-                name = pick(rec, "Scheme_Name", "SchemeName", "schemeName", contains=("scheme", "name"))
-                amc = pick(rec, "MF_Name", "MutualFundName", "mutualFundName", contains=("mutualfund",))
-                aum = to_float(pick(rec, "AAUM", "AverageAUM", "averageAUM", contains=("aum",)))
-                if name and aum is not None and aum >= 0:
-                    rows.append({"name": name, "amc": amc, "aum": aum})
+            rows = aum_rows_from(data)
             if len(rows) > 200:
-                write_json(RAW / "aum.json", {"period": f"{p.get('period')}", "fetched": dt.date.today().isoformat(),
-                                              "rows": rows})
-                log(f"AUM: {len(rows)} schemes for {p.get('period')}")
+                write_json(RAW / "aum.json", {"period": f"{p.get('period')}", "unit": "crore",
+                                              "fetched": dt.date.today().isoformat(), "rows": rows})
+                log(f"AUM: {len(rows)} plans and options for {p.get('period')}")
                 return
+            log(f"AUM {p.get('period')}: only {len(rows)} rows")
     log("AUM: nothing usable; keeping previous file if any")
 
 
@@ -423,6 +514,10 @@ def diagnose():
                                                            dt.date.today() - dt.timedelta(days=2))[:400]),
         ("TER months", lambda: http(f"{WWW}/api/populate-ter-month", params={"year": fin_year(dt.date.today())},
                                     referer="ter-of-mf-schemes")[:400]),
+        ("TER, one fund house, page 1", lambda: http(f"{WWW}/api/populate-te-rdata-revised",
+                                                     params={"MF_ID": amc_list()[0][0], "Month": ter_month(dt.date.today()),
+                                                             "strCat": "-1", "strType": "-1", "page": 1, "pageSize": TER_PAGE},
+                                                     referer="ter-of-mf-schemes")[:400]),
         ("AUM years", lambda: http(f"{WWW}/api/average-aum-fundwise", referer="research-information/aum-data/average-aum")[:400]),
         ("performance filters", lambda: http(f"{POLL}/api/amfi/fundperformancefilters", body={},
                                              referer="otherdata/fund-performance")[:400]),
