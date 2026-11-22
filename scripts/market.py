@@ -3,8 +3,9 @@
   python scripts/market.py   ->  out/data/market.json, out/index.html, out/robots.txt
 
 Each index's change on the last trading day (end of day, not live), worked out as the median
-day's change in NAV of the regular-plan index funds that track it. AMFI data only: AMFI's latest
-NAV file plus AMFI's NAV history report for the last few days. No other source is used.
+day's change in NAV of the regular-plan growth options of the index funds that track it.
+AMFI data only: AMFI's latest NAV file (to find the funds) and AMFI's NAV history report for the
+last few days (one fund house at a time). No other source is used.
 
 If no figure can be worked out, the script stops with an error so the workflow does not publish,
 and the website keeps showing the previous day's strip (it hides itself when data is over a week old).
@@ -16,14 +17,19 @@ import re
 import statistics
 import sys
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import ROOT, asset_kind, clean_name, group_of, num_day, open_store, plan_of, sub_name, write_json  # noqa: E402
+from common import ROOT, day_num, num_day, parse_nav_text, write_json  # noqa: E402
 import amfi_fetch as AF  # noqa: E402
 
 OUT = ROOT / "out"
 SITE = "https://nsfinancialservices.co.in/"
+HISTORY_DAYS = 10
+
+# Equity index fund categories in AMFI's NAV file (old and new SEBI category names)
+EQUITY_INDEX = re.compile(r"index funds?\s*-\s*equity|other scheme\s*-\s*index funds?", re.I)
 
 # (label shown, words the fund name must have, words it must not have)
 MARKET = [
@@ -46,27 +52,96 @@ def market_name(n: str) -> str:
     return re.sub(r"\s+", " ", n)
 
 
-def index_funds(schemes: list[dict]) -> dict[int, str]:
-    """AMFI code -> cleaned name, for regular-plan growth options of equity index funds."""
-    out = {}
-    for s in schemes:
-        g = group_of(s["category"])
-        if g != "Index funds" or plan_of(s["name"], g) != "R":
+def pick_index_funds(text: str) -> dict[int, str]:
+    """AMFI code -> scheme name, for regular-plan growth options of equity index funds.
+    Reads the Plan and Option columns of AMFI's NAV file when present, else the scheme name."""
+    cols: dict[str, int] = {}
+    delim, category, out = ";", "", {}
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("﻿")
+        if not line:
             continue
-        if asset_kind(g, sub_name(s["category"]), s["name"]) != "equity":
+        if not cols:
+            if "scheme code" in line.lower():
+                delim = "|" if line.count("|") > line.count(";") else ";"
+                for i, h in enumerate(x.strip().lower() for x in line.split(delim)):
+                    if "scheme code" in h:
+                        cols["code"] = i
+                    elif "scheme name" in h or h == "nav name":
+                        cols["name"] = i
+                    elif h == "plan":
+                        cols["plan"] = i
+                    elif h == "option":
+                        cols["option"] = i
             continue
-        out[int(s["code"])] = clean_name(s["name"])
+        if delim not in line:
+            m = re.match(r"^.*?Schemes?\s*\((.+)\)\s*$", line, re.I)
+            if m:
+                category = re.sub(r"\s+", " ", m.group(1)).strip()
+            continue
+        if not EQUITY_INDEX.search(category):
+            continue
+        p = [x.strip() for x in line.split(delim)]
+        get = lambda k: p[cols[k]] if k in cols and cols[k] < len(p) else ""  # noqa: E731
+        try:
+            code = int(get("code"))
+        except ValueError:
+            continue
+        name = re.sub(r"\s+", " ", get("name"))
+        full = " ".join((name, get("plan"), get("option"))).lower()
+        if "direct" in full or "regular" not in full:
+            continue                                    # regular plans only
+        if "growth" not in full or re.search(r"idcw|dividend|payout|bonus", full):
+            continue                                    # growth option only
+        out[code] = name
     return out
 
 
-def day_moves(con, funds: dict[int, str]) -> list[tuple[str, int, int, float]]:
+def latest_index_funds() -> dict[int, str]:
+    for url in (f"{AF.PORTAL}/spages/NAVAll.txt", f"{AF.WWW}/spages/NAVAll.txt"):
+        try:
+            text = AF.http(url).decode("utf-8", "replace")
+        except RuntimeError as e:
+            print(f"latest NAV file: {e}")
+            continue
+        if "Scheme Code" in text:
+            funds = pick_index_funds(text)
+            print(f"latest NAV file from {url}: {len(funds)} regular-plan equity index funds")
+            return funds
+    raise SystemExit("Could not download AMFI's latest NAV file. Not publishing.")
+
+
+def nav_history(codes: set[int], days: int = HISTORY_DAYS) -> dict[int, dict[int, float]]:
+    """code -> {day number: NAV} for the last few days, from AMFI's NAV history report."""
+    to = dt.date.today()
+    frm = to - dt.timedelta(days=days)
+    hist: dict[int, dict[int, float]] = {c: {} for c in codes}
+    failed = []
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futs = {ex.submit(AF.download_history, frm, to, mf): name for mf, name in AF.amc_list()}
+        for fu in as_completed(futs):
+            try:
+                for r in parse_nav_text(fu.result()):
+                    if r["code"] in hist:
+                        hist[r["code"]][day_num(r["date"])] = r["nav"]
+            except Exception as e:  # noqa: BLE001
+                failed.append(f"{futs[fu]} ({str(e)[:60]})")
+    got = sum(1 for v in hist.values() if len(v) >= 2)
+    print(f"NAV history {frm} to {to}: {got} of {len(codes)} funds have two or more NAVs"
+          + (f"; failed: {', '.join(failed)}" if failed else ""))
+    return hist
+
+
+def day_moves(funds: dict[int, str], hist: dict[int, dict[int, float]]) -> list[tuple[str, int, int, float]]:
     """(fund name, previous NAV day, last NAV day, day's change) from the two latest NAVs of each fund."""
     moves = []
     for code, name in funds.items():
-        rows = con.execute("SELECT d, nav FROM nav WHERE code=? ORDER BY d DESC LIMIT 2", (code,)).fetchall()
-        if len(rows) == 2 and rows[1][1] > 0:
-            (d1, v1), (d0, v0) = rows
-            moves.append((name, int(d0), int(d1), v1 / v0 - 1))
+        days = sorted(hist.get(code, {}))
+        if len(days) >= 2:
+            d0, d1 = days[-2], days[-1]
+            v0, v1 = hist[code][d0], hist[code][d1]
+            if v0 > 0:
+                moves.append((name, d0, d1, v1 / v0 - 1))
     return moves
 
 
@@ -107,13 +182,10 @@ INDEX_HTML = f"""<!doctype html>
 
 
 def main():
-    AF.RAW.mkdir(parents=True, exist_ok=True)
-    schemes = AF.fetch_latest()
-    AF.recent(days=10)
-    funds = index_funds(schemes)
-    con = open_store()
-    mk = market_strip(day_moves(con, funds))
-    con.close()
+    funds = latest_index_funds()
+    if not funds:
+        raise SystemExit("No index funds found in AMFI's NAV file. Not publishing.")
+    mk = market_strip(day_moves(funds, nav_history(set(funds))))
     if not mk:
         raise SystemExit("No market figures could be worked out from AMFI today. Not publishing.")
     age = (dt.date.today() - dt.date.fromisoformat(mk["date"])).days
