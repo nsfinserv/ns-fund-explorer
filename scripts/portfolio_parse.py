@@ -395,33 +395,51 @@ def parse_file(path: Path) -> list[dict]:
 
 # ------------------------------------------------------------------ batch: raw folders and inbox
 
+def real_month(m: str | None) -> bool:
+    """'YYYY-MM' that is a real month and not after the current one."""
+    if not m or not re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", m):
+        return False
+    return m <= dt.date.today().strftime("%Y-%m")
+
+
 def month_of(schemes: list[dict], fallback: str | None) -> str | None:
     ds = sorted(s["date"] for s in schemes if s.get("date"))
-    if ds:
+    if ds and real_month(ds[len(ds) // 2][:7]):
         return ds[len(ds) // 2][:7]
-    return fallback
+    return fallback if real_month(fallback) else None
 
 
 def parse_all() -> int:
     """data/raw/portfolios/<amc>/<YYYY-MM>/* and portfolios/inbox/** -> data/store/portfolios/<YYYY-MM>/<amc>.json"""
     STORE.mkdir(parents=True, exist_ok=True)
+    for d in [p for p in STORE.iterdir() if p.is_dir() and not real_month(p.name)]:   # misdated leftovers
+        for f in d.iterdir():
+            f.unlink()
+        d.rmdir()
+        print(f"[parse] removed {d.name}: not a real past month")
     done = 0
     if RAW_DIR.exists():
         for amc_dir in sorted(p for p in RAW_DIR.iterdir() if p.is_dir()):
             for mdir in sorted(p for p in amc_dir.iterdir() if p.is_dir()):
-                out = STORE / mdir.name / f"{amc_dir.name}.json"
-                stamp = max((f.stat().st_mtime for f in mdir.rglob("*") if f.is_file()), default=0)
-                if out.exists() and out.stat().st_mtime >= stamp:
+                marker = mdir / "_parsed.txt"
+                stamp = max((f.stat().st_mtime for f in mdir.rglob("*") if f.is_file() and f != marker), default=0)
+                if marker.exists() and marker.stat().st_mtime >= stamp:
                     continue
                 schemes = []
                 for f in sorted(mdir.iterdir()):
-                    if f.is_file():
+                    if f.is_file() and f != marker:
                         schemes += parse_file(f)
+                m = month_of(schemes, mdir.name)   # the files' own "as on" date decides the month
+                marker.write_text(m or "")
+                if not m:
+                    print(f"[parse] {amc_dir.name} {mdir.name}: no usable month, skipped")
+                    continue
                 meta = json.loads((mdir / "_source.json").read_text()) if (mdir / "_source.json").exists() else {}
+                out = STORE / m / f"{amc_dir.name}.json"
                 out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_text(json.dumps({"amc": meta.get("amc", amc_dir.name), "month": mdir.name,
+                out.write_text(json.dumps({"amc": meta.get("amc", amc_dir.name), "month": m,
                                            "files": meta.get("files", []), "schemes": schemes}, separators=(",", ":")))
-                print(f"[parse] {amc_dir.name} {mdir.name}: {len(schemes)} schemes")
+                print(f"[parse] {amc_dir.name} {mdir.name}: {len(schemes)} schemes" + (f" (dated {m})" if m != mdir.name else ""))
                 done += 1
     if INBOX.exists():
         files = [p for p in INBOX.rglob("*") if p.is_file() and p.suffix.lower() in EXCEL + (".zip",)]
