@@ -1,0 +1,105 @@
+name: Update fund data
+
+on:
+  schedule:
+    - cron: "40 19 * * *"   # 01:10 IST, after AMFI publishes the day's NAVs
+    - cron: "40 1 * * *"    # 07:10 IST, a second try in case AMFI was late
+  workflow_dispatch:         # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: fund-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Restore saved NAV history
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            data/store
+            data/raw
+          key: navstore-${{ github.run_id }}
+          restore-keys: navstore-
+
+      - name: Download today's data from AMFI
+        run: python scripts/amfi_fetch.py daily
+
+      - name: AMFI risk data for mid and small cap funds
+        run: python scripts/amfi_risk.py
+        continue-on-error: true
+
+      - name: Portfolios - which fund houses still need last month's file
+        id: pf
+        run: python scripts/portfolio_fetch.py pending
+        continue-on-error: true
+
+      - name: Portfolios - download from fund house websites
+        if: steps.pf.outputs.pending != '0'
+        run: |
+          python -m playwright install --with-deps chromium
+          python scripts/portfolio_fetch.py
+        env:
+          PF_MINUTES: "40"
+        timeout-minutes: 55
+        continue-on-error: true
+
+      - name: Portfolios - read the files (and anything in portfolios/inbox)
+        run: python scripts/portfolio_parse.py --all
+        continue-on-error: true
+
+      - name: Fill in older NAV history (continues where it stopped)
+        run: python scripts/amfi_fetch.py history --minutes 200
+        continue-on-error: true
+
+      - name: Save NAV history
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            data/store
+            data/raw
+          key: navstore-${{ github.run_id }}
+
+      - name: Build dashboard data
+        run: python scripts/build_data.py
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v5
+
+      - name: Keep the daily schedule switched on
+        if: success()
+        run: |
+          date -u +"Last data update: %Y-%m-%d %H:%M UTC" > last-update.txt
+          if [ "$(date -u +%u)" = "7" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add last-update.txt
+            git commit -m "Weekly data update marker" || true
+            git push || true
+          fi

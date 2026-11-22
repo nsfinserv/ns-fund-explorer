@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mutual fund explorer · NS Financial Services</title>
+<meta name="description" content="Every open-ended mutual fund in India by SEBI category, ranked the way you choose, from AMFI data.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%231B3DAB'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='28' text-anchor='middle' fill='white'%3ENS%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=IBM+Plex+Mono:wght@500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#1B3DAB">
+<style>
+/*
+VOICE   the NS Financial Services website: plain, calm, every number sourced
+IDEA    the website's own research desk: same letterhead band, same menu, same footer
+PICTURE the ranked category tables, then each fund's rolling-return chart
+COLOUR  NS blue #1B3DAB band and accents on white, ink #111633, lines #D8DEF0 (as on the main site)
+TYPE    Archivo for headings, Public Sans for text, IBM Plex Mono for the ARN (as on the main site)
+LAYOUT  letterhead band, white menu bar, controls, category tabs, ranked cards; fund pages open in a side panel
+*/
+:root{color-scheme:light;
+  --brand:#1B3DAB;--brand-deep:#142E86;--brand-ink:#1B3DAB;--brand-wash:#EEF2FC;--accent-soft:#BCC9F2;--accent-mid:#6F89DD;
+  --bg:#FFFFFF;--panel:#F4F6FC;--card:#FFFFFF;
+  --ink:#111633;--ink2:#3E4669;--muted:#5B6386;
+  --line:#D8DEF0;--line2:#B9C2DE;
+  --s1:#1B3DAB;--s2:#E0662F;--s3:#13A06F;--s4:#E3A008;
+  --fall:#D43F3E;--catc:#8F96B0;
+  --q1:#1c5cab;--q2:#86b6ef;--q3:#f2a9a8;--q4:#b83332;
+  --ok:#127A3A;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;--body:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html{scroll-padding-top:150px}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--body);overflow-x:clip;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);color:var(--ink);text-wrap:balance}
+main,header,footer,.controls{position:relative;z-index:1}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--brand);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.num,td.n,th.n{font-variant-numeric:tabular-nums}
+/* letterhead band and menu, as on nsfinancialservices.co.in */
+.band{background:var(--brand);color:#fff}
+.band-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 24px;padding-block:16px}
+.name{display:flex;flex-direction:column;gap:5px;min-width:0}
+.name b{font:800 clamp(1.25rem,2.4vw,1.6rem)/1.1 var(--display);font-stretch:118%;letter-spacing:.04em}
+.name small{font:600 1rem/1.3 var(--body);letter-spacing:.06em}
+.arn{justify-self:end;font:600 1rem/1.2 var(--mono);letter-spacing:.05em;white-space:nowrap}
+.nav{background:var(--bg);border-bottom:1px solid var(--line)}
+.nav ul{list-style:none;margin:0;padding:0;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.nav ul::-webkit-scrollbar{display:none}
+.nav li{flex:none}
+.nav a{display:block;padding:14px 12px;font:600 .9rem/1.2 var(--body);color:var(--ink);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.nav a:hover,.nav a[aria-current=page]{color:var(--brand);border-bottom-color:var(--brand)}
+/* intro */
+.intro{padding-top:44px;padding-bottom:8px}
+.intro h1{font-size:clamp(2rem,4.6vw,3.2rem);line-height:1.1;margin:0 0 10px;font-weight:800;letter-spacing:-.01em}
+.intro p{margin:0;color:var(--ink2);max-width:62ch;font-size:1.125rem}
+.figs{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:16px}
+.figs div{display:flex;flex-direction:column}
+.figs b{font:800 1.6rem/1.1 var(--display);color:var(--brand)}
+.figs span{font-size:13px;color:var(--muted)}
+.sample{margin-top:14px;padding:10px 14px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);font-size:14px;color:var(--ink2)}
+.sample b{color:var(--ink)}
+.edu{margin-top:10px;padding:10px 14px;border:1px solid var(--brand-ink);border-radius:8px;background:var(--brand-wash);font-size:14px;color:var(--ink2);max-width:100%}
+.edu b{color:var(--brand-ink)}
+.edu.sm{font-size:13px;margin-top:12px}
+/* controls */
+.controls{background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+@media(min-width:900px){.controls{position:sticky;top:0;z-index:20}}
+.crow{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;padding-block:12px}
+.search{position:relative;flex:1 1 240px;max-width:380px}
+.search input{width:100%;height:44px;border:1px solid var(--line2);border-radius:8px;background:var(--card);padding:0 12px 0 38px;font-size:16px}
+.search svg{position:absolute;left:12px;top:13px;color:var(--muted)}
+.results{position:absolute;left:0;right:0;top:48px;background:var(--card);border:1px solid var(--line2);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.15);max-height:360px;overflow:auto;z-index:40}
+.results button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 12px;border-bottom:1px solid var(--line)}
+.results button:hover,.results button:focus{background:var(--brand-wash)}
+.results small{display:block;color:var(--muted);font-size:13px}
+.seg{display:inline-flex;border:1.5px solid var(--brand);border-radius:6px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;min-height:42px;padding:0 14px;font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.seg button+button{border-left:1.5px solid var(--brand)}
+.seg button[aria-pressed=true]{background:var(--brand);color:#fff}
+.btn{min-height:44px;border:1.5px solid var(--brand);border-radius:6px;background:transparent;color:var(--brand);padding:0 16px;font:600 .95rem/1 var(--body);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--brand);color:#fff}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+.lbl{font-size:13px;color:var(--muted);font-weight:600}
+.rankrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:38px;border:1px solid var(--line2);border-radius:999px;background:var(--card);padding:0 14px;font-size:14px;font-weight:600;color:var(--ink2)}
+.chip[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2);min-height:38px}
+.toggle input{width:18px;height:18px;accent-color:var(--brand)}
+.weights{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 18px;padding:4px 0 14px}
+.weights label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:14px;font-weight:600}
+.weights input{grid-column:1/-1;width:100%;accent-color:var(--brand)}
+.pop{position:absolute;z-index:45;background:var(--card);border:1px solid var(--line2);border-radius:10px;box-shadow:0 14px 40px rgba(0,0,0,.18);width:min(360px,92vw);padding:12px}
+.pop input[type=search]{width:100%;height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--bg);padding:0 10px;font-size:16px}
+.pop .list{max-height:300px;overflow:auto;margin:8px 0}
+.pop label{display:flex;gap:10px;align-items:center;padding:7px 4px;font-size:14px;border-bottom:1px solid var(--line)}
+.pop label input{width:18px;height:18px;accent-color:var(--brand)}
+.pop .acts{display:flex;gap:8px;justify-content:space-between}
+/* tabs */
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-top:18px;scrollbar-width:thin}
+.tabs button{flex:none;border:0;background:none;padding:12px 14px;font:700 15px/1.2 var(--body);color:var(--muted);border-bottom:3px solid transparent;min-height:46px}
+.tabs button[aria-selected=true]{color:var(--brand-ink);border-bottom-color:var(--brand)}
+.tabs small{font-weight:600;margin-left:4px}
+.gnote{font-size:14px;color:var(--ink2);margin:14px 0 0}
+/* cards */
+.cards{display:grid;gap:22px;padding:18px 0 40px}
+.card{background:var(--card);border:1px solid var(--line);border-top:2px solid var(--brand);border-radius:0 0 8px 8px;overflow:hidden}
+.chead{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;padding:16px 18px 10px}
+.chead h2{font-size:1.4rem;margin:0;font-weight:800;line-height:1.2}
+.chead .sub{font-size:13.5px;color:var(--muted)}
+.chead .sp{flex:1}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+th.n,td.n{text-align:right}
+th button{all:unset;cursor:pointer}
+th button:focus-visible{outline:2px solid var(--brand-ink)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n{white-space:nowrap}
+.stick td.fund{min-width:270px}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--brand-wash)}
+td.rk{width:34px;color:var(--muted);font-weight:700;text-align:right;padding-right:4px}
+td.fund{min-width:220px}
+td.fund b{font-weight:700;display:block;line-height:1.3}
+td.fund small{color:var(--muted);font-size:12.5px}
+.flag{display:inline-block;font-size:11.5px;font-weight:700;color:var(--ink2);border:1px solid var(--line2);border-radius:999px;padding:0 7px;margin:2px 4px 0 0;white-space:nowrap}
+td.cmp{width:44px;text-align:center}
+.add{width:32px;height:32px;border:1px solid var(--line2);border-radius:8px;background:none;font-size:18px;line-height:1;color:var(--ink2)}
+.add[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+td.muted{color:var(--muted)}
+.cfoot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 18px}
+.cfoot .note{font-size:13px;color:var(--muted)}
+.empty{padding:18px;color:var(--ink2);font-size:15px}
+.stick td.fund,.stick th.fund{position:sticky;left:0;background:var(--card);z-index:1}
+/* year heatmap */
+.yh{display:grid;gap:2px;font-size:12.5px;padding:0 18px 14px}
+.yh .rowl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:8px;align-self:center;font-weight:600}
+.yh .hd{font-size:12px;color:var(--muted);text-align:center;font-weight:700}
+.cell{height:30px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-weight:600}
+.cell.q1{background:var(--q1);color:#fff}.cell.q2{background:var(--q2);color:#0b0b0b}.cell.q3{background:var(--q3);color:#0b0b0b}.cell.q4{background:var(--q4);color:#fff}
+.cell.na{background:var(--panel);color:var(--muted)}
+.qkey{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink2);padding:0 18px 12px}
+.qkey i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,12,20,.42);z-index:60}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(860px,100vw);background:var(--bg);z-index:61;overflow-y:auto;box-shadow:-10px 0 40px rgba(0,0,0,.25);overscroll-behavior:contain}
+.dtop{position:sticky;top:0;z-index:3;background:var(--brand);color:#fff;padding:14px 18px;display:flex;gap:12px;align-items:flex-start}
+.dtop h2{margin:0;font-size:clamp(19px,2.6vw,25px);line-height:1.2;font-weight:800;color:#fff}
+.dtop p{margin:4px 0 0;font-size:13.5px;opacity:.92}
+.dtop .x{margin-left:auto;flex:none;width:44px;height:44px;border-radius:8px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:22px}
+.dtop .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.7);flex:none}
+.dtop .btn:hover{background:#fff;color:var(--brand)}
+.dtop .btn[aria-pressed=true]{background:#fff;color:#1B3DAB}
+.dbody{padding:6px 18px 40px}
+.sec{padding:18px 0;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 4px;font-size:1.3rem;font-weight:800}
+.sec .lede{margin:0 0 12px;color:var(--ink2);font-size:14.5px;max-width:68ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:16px 0 4px}
+.tile{background:var(--panel);border-radius:10px;padding:12px 14px}
+.tile span{display:block;font-size:12.5px;color:var(--muted);font-weight:600}
+.tile b{display:block;font:800 1.5rem/1.2 var(--display);margin-top:2px;color:var(--ink)}
+.tile small{display:block;font-size:12.5px;color:var(--ink2)}
+.facts{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--ink2);padding-top:12px}
+.facts b{color:var(--ink);font-weight:700}
+.fig{position:relative;height:270px}
+.fig.sm{height:200px}
+.fig>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.16);z-index:5;min-width:150px}
+.tip .t{color:var(--muted);font-size:12px;margin-bottom:3px}
+.tip div{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.tip b{font-variant-numeric:tabular-nums}
+.key{display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--c)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--ink2);margin:2px 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
+.statrow div{border-left:3px solid var(--line2);padding:2px 0 2px 10px}
+.statrow span{display:block;font-size:12.5px;color:var(--muted);font-weight:600}
+.statrow b{font-size:18px;font-weight:700;display:block}
+.statrow small{display:block;font-size:12.5px;color:var(--ink2)}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:4px 0 10px}
+.ctl label{font-size:14px;color:var(--ink2);display:inline-flex;gap:8px;align-items:center}
+.ctl input[type=range]{width:160px;accent-color:var(--brand)}
+.ctl input[type=number],.ctl select{height:40px;border:1px solid var(--line2);border-radius:8px;background:var(--card);padding:0 8px;font-size:16px;width:130px}
+.hb{display:grid;grid-template-columns:86px minmax(0,1fr) 64px;gap:4px 10px;align-items:center;font-size:14px}
+.hb .bar{height:14px;background:var(--panel);border-radius:0 4px 4px 0;position:relative}
+.hb .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--c,var(--s1))}
+.hb .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.hb .l{color:var(--ink2)}
+.ev{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) auto;gap:3px 12px;align-items:center;font-size:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.ev .bars{display:grid;gap:3px}
+.ev .bars div{height:10px;border-radius:0 4px 4px 0;background:var(--c)}
+.ev .vals{font-variant-numeric:tabular-nums;text-align:right;font-size:13.5px;white-space:nowrap}
+.ev .vals b{font-weight:700}
+.rng{position:relative;height:44px;margin:6px 0}
+.rng .track{position:absolute;left:0;right:0;top:20px;height:4px;background:var(--panel);border-radius:2px}
+.rng .w{position:absolute;top:19px;height:6px;background:color-mix(in srgb,var(--s1) 35%,transparent);border-radius:3px}
+.rng .m{position:absolute;top:14px;height:16px;background:var(--s1);border-radius:4px}
+.rng .md{position:absolute;top:10px;width:4px;height:24px;margin-left:-2px;background:var(--ink);border-radius:2px}
+.rng .z{position:absolute;top:6px;bottom:6px;width:1px;background:var(--line2)}
+.rng small{position:absolute;top:30px;font-size:11.5px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.sipgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+.sipgrid div{background:var(--panel);border-radius:8px;padding:10px 12px}
+.sipgrid span{display:block;font-size:12.5px;color:var(--muted);font-weight:600}
+.sipgrid b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.sipgrid small{font-size:12.5px;color:var(--ink2)}
+.yrs{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px}
+.yrs .cell{height:auto;flex-direction:column;padding:6px 2px;line-height:1.2}
+.yrs .cell small{font-size:11.5px;font-weight:600;opacity:.85}
+.mtable td,.mtable th{padding:7px 8px}
+.src{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5}
+.warn{font-size:13.5px;color:var(--ink2);background:var(--panel);border-radius:8px;padding:8px 12px;margin:8px 0}
+/* compare tray */
+.tray{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:50;background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 8px 8px 14px;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 24px);box-shadow:0 12px 30px rgba(0,0,0,.3)}
+.tray .names{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:52vw}
+.tray .btn{background:var(--bg);color:var(--ink);border:0;min-height:40px}
+.tray .clr{background:none;border:0;color:var(--bg);opacity:.8;min-height:40px;font-size:14px}
+/* methodology + footer */
+.method{padding:10px 0 40px}
+.method details{border-top:1px solid var(--line);padding:4px 0}
+.method summary{cursor:pointer;font-weight:800;font-size:17px;padding:12px 0;min-height:44px}
+.method p,.method li{color:var(--ink2);font-size:15px;max-width:72ch}
+.foot{background:var(--brand);color:#fff}
+.foot-inner{padding-block:36px;display:grid;gap:12px;justify-items:center;text-align:center}
+.foot p{max-width:80ch;margin:0}
+.foot p:not(.risk){font-size:.9rem;color:rgba(255,255,255,.85)}
+.foot p.tag{font-size:1rem;color:#fff}
+.foot .tiny{font-size:.8rem}
+.foot a{color:#fff}
+/* portfolio and ratios */
+.stack{display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--panel);margin:6px 0 4px}
+.stack i{display:block;height:100%;background:var(--c)}
+.skey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--ink2);margin-bottom:6px}
+.skey span{display:inline-flex;align-items:center;gap:6px}.skey i{width:11px;height:11px;border-radius:3px;background:var(--c)}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px 28px}
+.sub3{font-size:15px;font-weight:800;margin:14px 0 6px}
+.chg{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:6px}
+.chg div{background:var(--panel);border-radius:8px;padding:10px 12px;font-size:13.5px}
+.chg b{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.chg ol{margin:0;padding-left:18px}.chg li{margin:2px 0}
+.rt td:first-child{font-weight:600}.rt small{color:var(--muted);font-weight:400}
+.better{color:var(--ok);font-weight:700}.worse{color:var(--fall);font-weight:700}
+.ovl td.n{font-weight:700}
+.rt .hm{display:none}
+.sel{height:44px;border:1px solid var(--line2);border-radius:8px;background:var(--card);padding:0 34px 0 12px;font-size:15px;font-weight:600;max-width:100%;
+  appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:calc(100% - 18px) 19px,calc(100% - 13px) 19px;background-size:5px 5px;background-repeat:no-repeat}
+.ftype{display:inline-flex;gap:8px;align-items:center;flex:1 1 260px;max-width:420px}.ftype .sel{flex:1}
+.cellsub{display:block;font-size:12px;color:var(--muted);font-weight:500}
+th small{display:block;font-weight:500;font-size:11.5px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.cdesc{margin:-4px 18px 10px;font-size:14px;color:var(--ink2);max-width:80ch}
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 18px;background:var(--brand-wash);border-radius:10px;padding:12px 16px;margin:16px 0 0;font-size:13.5px;color:var(--ink2)}
+.howto b{display:block;color:var(--ink);font-size:14px}
+.howtod{margin:16px 0 0;background:var(--brand-wash);border-radius:10px}
+.howtod summary{cursor:pointer;font-weight:800;color:var(--brand-ink);font-size:14px;padding:12px 16px;min-height:44px}
+.howtod .howto{margin:0;padding-top:0;background:none}
+.plain{background:var(--brand-wash);border-radius:10px;padding:14px 16px;margin-top:14px}
+.plain h3{margin:0 0 6px;font-size:16px;font-weight:800;color:var(--brand-ink)}
+.plain ul{margin:0;padding-left:20px}.plain li{margin:4px 0;color:var(--ink)}
+.morebtn{margin-top:8px}
+@media(max-width:600px){.rt th:nth-child(4),.rt td:nth-child(4){display:none}.rt .hm{display:block;font-size:12px;line-height:1.4;margin-top:2px}}
+@media(max-width:640px){.band-inner{gap:10px 14px}.name b{font-size:1.15rem;font-stretch:112%}.name small{font-size:.8rem}.arn{align-self:start;font-size:.9rem}}
+@media(max-width:600px){
+  .dtop{padding:10px 14px;gap:8px}.dtop h2{font-size:18px}.dtop p{font-size:12.5px}
+  .dtop .btn{min-height:38px;order:3}.dtop .x{width:40px;height:40px}
+  .seg button{padding:0 11px}
+  td.fund{min-width:180px}
+  .hb{grid-template-columns:64px minmax(0,1fr) 56px}
+  .ev{grid-template-columns:1fr auto}.ev .bars{grid-column:1/-1;grid-row:2}
+  .dtop{flex-wrap:wrap}
+  .fig{height:230px}
+}
+@media(prefers-reduced-motion:no-preference){.drawer{animation:slide .22s ease-out}@keyframes slide{from{transform:translateX(30px);opacity:.6}}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap band-inner">
+    <div class="name"><b>NS FINANCIAL SERVICES</b><small>AMFI REGISTERED MUTUAL FUND DISTRIBUTOR</small></div>
+    <div class="arn">ARN-347748</div>
+  </div>
+</header>
+<nav class="nav" aria-label="NS Financial Services website">
+  <div class="wrap"><ul>
+    <li><a href="https://nsfinancialservices.co.in/">Home</a></li>
+    <li><a href="https://nsfinancialservices.co.in/#services">Services</a></li>
+    <li><a href="https://nsfinancialservices.co.in/#sip">SIP calculator</a></li>
+    <li><a href="https://nsfinancialservices.co.in/#learn">Learn</a></li>
+    <li><a href="https://nsfinancialservices.co.in/blog/">Blog</a></li>
+    <li><a href="https://nsfinancialservices.co.in/risk-profile">Risk profile</a></li>
+    <li><a href="./" aria-current="page">Fund explorer</a></li>
+    <li><a href="https://nsfinancialservices.co.in/#contact">Contact</a></li>
+  </ul></div>
+</nav>
+
+<main>
+  <section class="wrap intro">
+    <h1>Mutual fund explorer</h1>
+    <p id="dek">Every open-ended mutual fund in India (regular plans), grouped by SEBI category. You choose what “top” means; tap any fund for its returns, key ratios and latest portfolio.</p>
+    <div class="figs" id="figs"></div>
+    <div id="sampleNote"></div>
+    <div class="edu"><b>For educational purposes only. Not investment advice.</b> Nothing here is a recommendation to buy, hold or sell any scheme. NS Financial Services is an AMFI Registered Mutual Fund Distributor, not a SEBI-registered investment adviser. Rankings and figures are based on past data; past performance may or may not be sustained in future.</div>
+  </section>
+
+  <div class="controls" id="controls">
+    <div class="wrap">
+      <div class="crow">
+        <div class="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Search a fund, e.g. flexi cap" autocomplete="off" aria-label="Search funds">
+          <div class="results" id="results" hidden></div>
+        </div>
+        <button class="btn" id="amcBtn" aria-haspopup="true" aria-expanded="false">All fund houses <span aria-hidden="true">▾</span></button>
+        <button class="btn" id="amcView">Fund house view</button>
+      </div>
+      <div class="crow" style="padding-top:0">
+        <label class="ftype"><span class="lbl">Fund type</span><select id="ftype" class="sel" aria-label="Fund type"></select></label>
+        <span style="display:inline-flex;gap:8px;align-items:center"><span class="lbl">View</span>
+          <span class="seg" role="group" aria-label="View"><button data-view="simple" aria-pressed="true">Simple</button><button data-view="detail" aria-pressed="false">Detailed</button></span></span>
+      </div>
+      <div class="rankrow">
+        <span class="lbl">Rank top 10 by</span>
+        <div class="chips" id="presets" role="group" aria-label="Ranking"></div>
+        <label class="toggle"><input type="checkbox" id="young"> Include funds too new to judge</label>
+      </div>
+      <div class="weights" id="weights" hidden></div>
+    </div>
+  </div>
+
+  <section class="wrap">
+    <div class="tabs" id="tabs" role="tablist" aria-label="Fund groups"></div>
+    <p class="gnote" id="gnote"></p>
+    <div id="howto"></div>
+    <div class="cards" id="cards"><div class="empty">Loading AMFI data…</div></div>
+  </section>
+
+  <section class="wrap method" id="method">
+    <details>
+      <summary>How to read the rankings</summary>
+      <p>Only regular plans are shown. Funds are compared only with others in the same SEBI category. The top 10 changes with the measure you pick above; the number beside each fund is its place in the whole category, so it stays the same when you filter by fund house.</p>
+      <ul>
+        <li><b>Rolling consistency</b> leans on how often the fund beat its category's typical return, plus its typical rolling return and how rarely it lost money.</li>
+        <li><b>Smallest falls</b> leans on the worst fall in the last 5 years, how long it took to recover, and how often a holding ended in a loss.</li>
+        <li><b>Long-term return</b> uses the typical 5-year rolling return, then the main rolling period.</li>
+        <li><b>Risk-adjusted return</b> leans on the 3-year Sortino and Sharpe ratios and how much of the index fund's falls the fund took.</li>
+        <li><b>Build your own</b> lets you weight return, consistency and falls yourself.</li>
+      </ul>
+      <p>Funds without enough history for the category's main holding period (1 year for debt and arbitrage funds, 3 years for the rest) are left out of the top 10 unless you tick “Include funds too new to judge”.</p>
+    </details>
+    <details>
+      <summary>How each measure is worked out</summary>
+      <ul>
+        <li><b>Rolling return</b>: the yearly return over every possible 1, 3, 5, 7 or 10-year period, one per trading day, from AMFI's daily NAVs. “Typical” is the middle value; worst and best are the extremes.</li>
+        <li><b>Beat category</b>: the share of month-ends when the fund's rolling return was higher than the middle fund in its category on that date.</li>
+        <li><b>Chance of loss</b>: the share of all holding periods of that length that ended below the starting value.</li>
+        <li><b>Worst fall</b>: the biggest drop from a previous high in NAV. “Recovery” is the time from the bottom back to that high.</li>
+        <li><b>Crash replay</b>: the fund's biggest fall inside each market episode, next to the typical fall in its category.</li>
+        <li><b>SIP range</b>: a monthly SIP started on the first NAV of every possible month, valued on the first NAV after 3, 5 or 10 years. The return shown is the XIRR.</li>
+        <li><b>Money in hand</b>: an estimate after capital gains tax for FY 2026-27 and inflation. Equity-oriented funds: 12.5% on long-term gains above ₹1.25 lakh a year; debt-oriented funds: your slab rate; others: 12.5% after 24 months. Surcharge and cess are left out.</li>
+        <li><b>Volatility</b>: how much the NAV moves up and down in a year, from daily changes over 3 years.</li>
+        <li><b>Key ratios</b>: from month-end NAVs over the last 3 or 5 complete years. Standard deviation is the spread of monthly returns times √12. Sharpe is the yearly return above the risk-free rate divided by standard deviation; Sortino divides by the spread of the falls only. The risk-free rate is the typical overnight fund's monthly return (from AMFI NAVs). Beta, alpha, R-squared, capture ratios, tracking error and information ratio compare the fund with the index fund that tracks its category's usual benchmark, named on each fund page.</li>
+        <li><b>Portfolio</b>: read from each fund house's monthly portfolio file (SEBI format). Company size uses AMFI's list of listed companies by average market cap. “What changed” compares the number of shares or units held with the previous month, so price moves are not counted as buying or selling.</li>
+        <li><b>AMFI risk check</b>: AMFI's monthly disclosure for mid cap and small cap funds: days needed to sell 25% and 50% of the portfolio, the share held by the top 10 investors, portfolio PE against the benchmark, turnover and AMFI's own standard deviation and beta.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Words used on this site</summary>
+      <ul>
+        <li><b>NAV</b>: the price of one unit of the fund, published by AMFI every working day.</li>
+        <li><b>Regular plan</b>: the plan you buy through a mutual fund distributor. Its expense ratio includes the distributor's commission.</li>
+        <li><b>Rolling return</b>: the yearly return over every possible period of the same length (for example every 3-year period), not just from one start date. It shows what investors who started on different days actually got.</li>
+        <li><b>Expense ratio</b>: the share of your money the fund takes each year to run the scheme. It is already taken out of the NAV.</li>
+        <li><b>Large, mid and small cap</b>: SEBI ranks listed companies by market value. The top 100 are large caps, 101 to 250 are mid caps, and the rest are small caps.</li>
+        <li><b>Standard deviation (ups and downs)</b>: how much the fund's returns swing from month to month. Lower means a steadier ride.</li>
+        <li><b>Sharpe ratio (return for the risk taken)</b>: extra return over a safe overnight fund for each unit of ups and downs. Higher is better.</li>
+        <li><b>Beta</b>: how much the fund moves when the market (here, an index fund) moves by 1%.</li>
+        <li><b>Down capture (share of market falls taken)</b>: in months when the index fund fell, how much of that fall this fund took. Below 100% means it fell less.</li>
+        <li><b>Portfolio overlap</b>: how much of two funds' money is in the same companies or bonds.</li>
+        <li><b>Macaulay duration</b>: the average time, in years, for a bond fund to get its money back. Longer duration means the NAV moves more when interest rates change.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Where the data comes from</summary>
+      <div id="sources"></div>
+      <p>NAVs are for growth options of the regular plans of open-ended schemes. Where a scheme has old retail or institutional plans, only the current plan is shown. NAV history runs from April 2006 at the earliest, so “since data start” may be later than a fund's launch.</p>
+    </details>
+    <details>
+      <summary>Limits</summary>
+      <p>This website is for educational purposes only. It is not investment advice, and NS Financial Services is not a SEBI-registered investment adviser. Everything here is based on past NAVs. Past performance may or may not be sustained in future. Rankings show how funds compare on the measure you pick; they are not recommendations to buy, hold or sell any scheme. A fund's category, manager, size or strategy can change. Read the scheme information document before investing.</p>
+    </details>
+  </section>
+</main>
+
+<footer class="band foot">
+  <div class="wrap foot-inner">
+    <p class="risk">Mutual Fund investments are subject to market risks, read all scheme related documents carefully.</p>
+    <p class="tag">NS Financial Services · AMFI Registered Mutual Fund Distributor (ARN-347748)</p>
+    <p class="tiny">This fund explorer is for educational purposes only and is not investment advice or a recommendation of any scheme. Past performance may or may not be sustained in the future and is not a guarantee of future returns. Please read the scheme information document before investing. Contact: nsfinserv.kmu@gmail.com · © 2026 NS Financial Services.</p>
+  </div>
+</footer>
+
+<div id="pop" class="pop" hidden></div>
+<div id="tray" class="tray" hidden></div>
+<div id="scrim" class="scrim" hidden></div>
+<aside id="drawer" class="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="dTitle"></aside>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fin = x => x !== null && x !== undefined && Number.isFinite(+x);
+const pct = (x, dp = 1, sign = false) => { if (!fin(x)) return '–'; const a = Math.abs(x).toFixed(dp), z = +a === 0; return (x < 0 && !z ? '−' : (sign && x > 0 && !z ? '+' : '')) + a + '%'; };
+const inr = x => !fin(x) ? '–' : '₹' + Math.round(x).toLocaleString('en-IN');
+const crore = x => !fin(x) ? '–' : '₹' + Math.round(x).toLocaleString('en-IN') + ' cr';
+const dmy = s => { if (!s) return '–'; const [y, m, d] = s.split('-'); return `${+d} ${MON[+m - 1]} ${y}`; };
+const dur = (d, nr) => nr ? 'Not yet' : !fin(d) ? '–' : d < 45 ? `${d} days` : d < 730 ? `${Math.round(d / 30.44)} months` : `${(d / 365.25).toFixed(1)} years`;
+const store = { get(k, v) { try { const x = localStorage.getItem('nsf-' + k); return x === null ? v : JSON.parse(x); } catch (e) { return v; } },
+                set(k, v) { try { localStorage.setItem('nsf-' + k, JSON.stringify(v)); } catch (e) {} } };
+
+const PRESETS = {
+  cons: { label: 'Rolling consistency', w: { bt: .5, rh: .3, ls: .2 } },
+  falls: { label: 'Smallest falls', w: { dd: .5, rc: .25, ls: .25 } },
+  long: { label: 'Long-term return', w: { r5m: .7, rh: .3 } },
+  risk: { label: 'Risk-adjusted return', w: { so3: .45, sh3: .35, dc3: .2 } },
+  custom: { label: 'Build your own' }
+};
+const DIR = { rh: 1, r5m: 1, bt: 1, ls: -1, dd: 1, rc: -1, ter: -1, vol: -1, rr1: 1, rr3: 1, rr5: 1, rr7: 1, rr10: 1,
+  sh3: 1, so3: 1, sd3: -1, be3: -1, al3: 1, uc3: 1, dc3: -1, ir3: 1, rq3: 1, d50: -1, t10: -1, ytm: 1, nh: 1, cash: -1, lcp: 1, mcp: 1, scp: 1 };
+const FLAGS = { young: 'Under 3 years', small: 'Fund size under ₹100 cr', cost: 'Costly for its category', below: 'Below its peak' };
+const FLAGS_SHORT = { young: 'New', small: 'Small', cost: 'Costly', below: 'Below peak' };
+
+const S = {
+  meta: null, funds: [], byId: new Map(), plan: 'R', group: null, cat: null, view: store.get('view', 'simple'),
+  preset: store.get('preset', 'cons'), wts: store.get('wts', { R: 3, C: 3, F: 2, T: 1 }),
+  young: store.get('young', false), amcs: new Set(store.get('amcs', [])), compare: [], open: new Set(),
+  sort: {}, mode: {}, ranks: new Map(), cache: new Map()
+};
+
+/* ------------------------------------------------------------------ ranking */
+function weights() {
+  if (S.preset !== 'custom') return PRESETS[S.preset].w;
+  const { R, C, F } = S.wts;
+  return { rh: R * .5, r5m: R * .5, bt: C, dd: F * .6, ls: F * .4 };
+}
+function metricVal(f, k) {
+  if (k === 'rc') return f.nr ? 1e9 : (fin(f.rc) ? f.rc : (fin(f.dd) ? 0 : null));
+  return fin(f[k]) ? f[k] : null;
+}
+function inView(f) { return f.p === 'R'; }
+function rankAll() {
+  const w = weights();
+  S.ranks = new Map();
+  for (const c of S.meta.cats) {
+    const list = S.funds.filter(f => f.c === c.i && inView(f));
+    const pcts = {};
+    for (const k of Object.keys(w)) {
+      if (!w[k]) continue;
+      const vals = list.map(f => metricVal(f, k)).filter(v => v !== null).sort((a, b) => a - b);
+      pcts[k] = v => {
+        if (v === null || !vals.length) return null;
+        if (vals.length === 1) return .5;
+        let lo = 0, hi = vals.length;
+        while (lo < hi) { const m = (lo + hi) >> 1; if (vals[m] < v) lo = m + 1; else hi = m; }
+        let e = lo; while (e < vals.length && vals[e] === v) e++;
+        const p = (lo + (e - lo - 1) / 2) / (vals.length - 1);
+        return DIR[k] > 0 ? p : 1 - p;
+      };
+    }
+    for (const f of list) {
+      let sw = 0, sv = 0, tot = 0;
+      for (const k in pcts) { tot += w[k]; const p = pcts[k](metricVal(f, k)); if (p !== null) { sw += w[k]; sv += w[k] * p; } }
+      f._score = sw >= tot * .5 && sw > 0 ? sv / sw : null;
+      f._ok = f._score !== null && (S.young || fin(f.rh));
+    }
+    list.sort((a, b) => (b._ok - a._ok) || ((b._score ?? -1) - (a._score ?? -1)) || ((b.rh ?? -99) - (a.rh ?? -99)));
+    list.forEach((f, i) => f._rank = i + 1);
+    S.ranks.set(c.i, list);
+  }
+}
+const amcOk = f => !S.amcs.size || S.amcs.has(f.a);
+
+/* ------------------------------------------------------------------ data */
+async function getJSON(u) { const r = await fetch(u, { cache: 'no-cache' }); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); }
+async function catData(c, p) {
+  const key = `${S.meta.cats.find(x => x.i === c).id}-${p}`;
+  if (!S.cache.has(key)) S.cache.set(key, getJSON(`data/d/${key}.json`));
+  return S.cache.get(key);
+}
+const monthName = gi => { const m = S.meta.m0 + gi; return `${MON[((m % 12) + 12) % 12]} ${1970 + Math.floor(m / 12)}`; };
+const catOf = f => S.meta.cats.find(c => c.i === f.c);
+
+/* ------------------------------------------------------------------ header + controls */
+function renderTop() {
+  const m = S.meta;
+  const shown = S.funds.filter(inView);
+  $('#figs').innerHTML = [
+    [shown.length.toLocaleString('en-IN'), 'regular plan funds'],
+    [m.cats.length, 'categories'], [m.amcs.length, 'fund houses'], [dmy(m.asOf), 'latest NAV date']
+  ].map(([b, s]) => `<div><b class="num">${b}</b><span>${s}</span></div>`).join('');
+  $('#sampleNote').innerHTML = m.sample ? `<div class="sample"><b>Preview with sample data.</b> Fund houses and figures are made up to show how the dashboard works. Real AMFI data replaces them once the daily update runs.</div>` : '';
+  $('#presets').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button class="chip" data-preset="${k}" aria-pressed="${k === S.preset}">${p.label}</button>`).join('');
+  const W = $('#weights');
+  W.hidden = S.preset !== 'custom';
+  if (!W.hidden && !W.childElementCount) {
+    W.innerHTML = [['R', 'Return'], ['C', 'Consistency'], ['F', 'Smaller falls']].map(([k, l]) =>
+      `<label for="w${k}">${l}<span class="num" id="wv${k}">${S.wts[k]}</span><input id="w${k}" type="range" min="0" max="5" step="1" value="${S.wts[k]}" data-w="${k}"></label>`).join('');
+  }
+  $('#young').checked = S.young;
+  const gs = groups();
+  $('#ftype').innerHTML = gs.map(g => {
+    const cs = m.cats.filter(c => c.g === g && S.funds.some(f => f.c === c.i && inView(f)));
+    const n = S.funds.filter(f => catOf(f).g === g && inView(f)).length;
+    return `<optgroup label="${esc(g)}"><option value="g|${esc(g)}">All ${esc(g.toLowerCase())} (${n})</option>${cs.map(c => `<option value="c|${c.i}">${esc(c.n)} (${S.funds.filter(f => f.c === c.i && inView(f)).length})</option>`).join('')}</optgroup>`;
+  }).join('');
+  $('#ftype').value = S.cat !== null ? 'c|' + S.cat : 'g|' + (S.group || gs[0]);
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === S.view));
+  $('#amcBtn').firstChild.textContent = S.amcs.size ? `${S.amcs.size} fund house${S.amcs.size > 1 ? 's' : ''} ` : 'All fund houses ';
+  const s = m.sources;
+  $('#sources').innerHTML = `<ul>${[['NAV', s.nav + ', up to ' + dmy(m.asOf)], ['Expense ratio', s.ter], ['Fund size', s.aum], ['Benchmark returns', s.perf],
+      ['Key ratios', s.ratios], ['Portfolios', s.port], ['Market-cap groups', s.mcap], ['Mid and small cap risk data', s.risk]]
+    .map(([k, v]) => `<li><b>${k}</b>: ${esc(v || 'not available in this update')}</li>`).join('')}<li><b>Built</b>: ${esc(m.built)}</li></ul>`;
+}
+
+function groups() {
+  const order = [];
+  for (const c of S.meta.cats) if (!order.includes(c.g) && S.funds.some(f => f.c === c.i && inView(f))) order.push(c.g);
+  return order;
+}
+const CAT_INFO = [
+  [/large\s*&?\s*(and\s*)?mid/i, 'Invests at least 35% in India\'s 100 biggest listed companies and at least 35% in the next 150.'],
+  [/large cap/i, 'Invests at least 80% in India\'s 100 biggest listed companies.'],
+  [/mid cap/i, 'Invests at least 65% in mid-size companies (ranked 101 to 250 by market value).'],
+  [/small cap/i, 'Invests at least 65% in smaller companies (ranked 251 and below by market value). Prices can rise and fall sharply.'],
+  [/multi cap/i, 'Invests at least 75% in shares, with at least 25% each in large, mid and small companies.'],
+  [/flexi cap/i, 'Invests at least 65% in shares; the fund manager can move freely between large, mid and small companies.'],
+  [/focused/i, 'Invests at least 80% in shares, in at most 30 companies.'],
+  [/dividend yield/i, 'Invests at least 80% in shares of companies that pay dividends.'],
+  [/value/i, 'Invests at least 80% in shares that the fund manager thinks are priced below their worth.'],
+  [/contra/i, 'Invests at least 80% in shares that are out of favour with the market at present.'],
+  [/elss|tax sav/i, 'Tax-saving fund: at least 80% in shares, with a 3-year lock-in.'],
+  [/sectoral debt/i, 'Invests at least 80% in bonds of one sector (finance, energy, infrastructure, housing or real estate), rated AA+ or higher.'],
+  [/sectoral/i, 'Invests at least 80% in one sector, such as banking or technology.'],
+  [/thematic/i, 'Invests at least 80% in one theme, such as consumption or manufacturing, which can cover several sectors.'],
+  [/overnight/i, 'Lends money for one day at a time.'],
+  [/liquid/i, 'Invests in papers that mature within 91 days.'],
+  [/ultra short to short|low duration/i, 'Holds papers with an average duration (Macaulay) of 6 to 12 months.'],
+  [/ultra short/i, 'Holds papers with an average duration (Macaulay) of 3 to 6 months.'],
+  [/money market/i, 'Invests in money market papers that mature within 1 year.'],
+  [/medium to long/i, 'Holds papers with an average duration (Macaulay) of 4 to 7 years.'],
+  [/medium/i, 'Holds papers with an average duration (Macaulay) of 3 to 4 years.'],
+  [/short/i, 'Holds papers with an average duration (Macaulay) of 1 to 3 years.'],
+  [/long/i, 'Holds papers with an average duration (Macaulay) of more than 7 years.'],
+  [/dynamic bond/i, 'The fund manager can hold short or long papers, changing with interest rates.'],
+  [/corporate bond/i, 'Invests at least 80% in company bonds rated AA+ or higher.'],
+  [/credit risk/i, 'Invests at least 65% in company bonds rated AA or lower. These pay more interest and carry more risk of default.'],
+  [/banking/i, 'Invests at least 80% in bonds of banks, public sector companies and public financial institutions.'],
+  [/10.year|constant/i, 'Invests at least 80% in government securities, kept at about 10 years\' duration.'],
+  [/gilt/i, 'Invests at least 80% in Government of India securities.'],
+  [/float/i, 'Invests at least 65% in bonds whose interest rate resets with market rates.'],
+  [/conservative/i, 'Invests 10% to 25% in shares and the rest mostly in bonds.'],
+  [/balanced hybrid/i, 'Invests 40% to 60% in shares and 40% to 60% in bonds.'],
+  [/aggressive/i, 'Invests 65% to 80% in shares and 20% to 35% in bonds.'],
+  [/dynamic asset|balanced advantage/i, 'Moves money between shares and bonds as the fund manager decides; there is no fixed split.'],
+  [/multi asset/i, 'Invests at least 10% each in three or more types of assets, such as shares, bonds and gold.'],
+  [/arbitrage/i, 'Buys shares and sells their futures at the same time, to earn the small price gap between the two.'],
+  [/equity savings/i, 'Holds shares (15% to 40% fully exposed to price moves), matched share-and-futures positions, and at least 10% in bonds.'],
+  [/life cycle/i, 'Target-year fund: the share in equity goes down step by step as the target year comes closer.'],
+  [/index/i, 'Copies an index: at least 95% of the money is in the companies or bonds of that index.'],
+  [/fof|fund of fund/i, 'Invests at least 95% in other mutual fund schemes.']
+];
+const catInfo = c => { const t = c.n + ' ' + c.raw; const hit = CAT_INFO.find(([rx]) => rx.test(c.n)) || CAT_INFO.find(([rx]) => rx.test(t)); return hit ? hit[1] : ''; };
+const GNOTE = {
+  'Index funds': 'Split by what the index holds, so equity index funds are only ranked against other equity index funds.',
+  'Solution oriented': 'SEBI discontinued this category in February 2026; these schemes are being merged into others.',
+  'Life cycle': 'A new SEBI category from February 2026, so most funds are too new for rolling returns.',
+  'Debt': 'The main holding period for debt funds is 1 year.'
+};
+function renderTabs() {
+  const gs = groups();
+  if (!gs.includes(S.group)) S.group = gs.includes(location.hash.slice(1)) ? location.hash.slice(1) : gs[0];
+  $('#tabs').innerHTML = gs.map(g => {
+    const n = S.funds.filter(f => catOf(f).g === g && inView(f) && amcOk(f)).length;
+    return `<button role="tab" aria-selected="${g === S.group}" data-group="${esc(g)}">${esc(g)}<small class="num">${n}</small></button>`;
+  }).join('');
+  $('#gnote').textContent = GNOTE[S.group] || '';
+  if ($('#ftype').options.length) $('#ftype').value = S.cat !== null ? 'c|' + S.cat : 'g|' + S.group;
+  const wide = matchMedia('(min-width: 700px)').matches, wasOpen = $('#howto details')?.open;
+  $('#howto').innerHTML = S.view === 'simple' ? `<details class="howtod" ${wasOpen ?? wide ? 'open' : ''}><summary>How to read the tables</summary><div class="howto">
+    <span><b>Usual yearly return</b>The middle result of every past period of that length, whatever day you started.</span>
+    <span><b>Lost money</b>Out of all those periods, the share that ended with less than you put in.</span>
+    <span><b>Biggest fall</b>The largest drop from a high in the last 5 years, and how long the NAV took to get back to it.</span>
+    <span><b>Ahead of similar funds</b>How often the fund was above the middle fund of its own category.</span>
+    <span><b>Yearly cost</b>The expense ratio taken from the fund each year (regular plan).</span></div></details>` : '';
+}
+
+/* ------------------------------------------------------------------ category cards */
+const COLS = c => [
+  ['rh', `Typical ${c.H}Y rolling`, f => pct(f.rh), 'Middle value of every ' + c.H + '-year rolling return'],
+  ...(c.H === 1 ? [['rr3', 'Typical 3Y rolling', f => pct(f.rr3), 'Middle value of every 3-year rolling return']]
+    : [['rr5', 'Typical 5Y rolling', f => pct(f.rr5), 'Middle value of every 5-year rolling return']]),
+  ['sh3', 'Sharpe (3Y)', f => fin(f.sh3) ? f.sh3.toFixed(2) : '–', 'Return above the overnight-fund rate per unit of ups and downs, last 3 years'],
+  ['bt', 'Beat category', f => pct(f.bt, 0), 'Share of month-ends the fund was ahead of the category middle'],
+  ['ls', `Chance of loss (${c.H}Y)`, f => pct(f.ls, 0), 'Share of ' + c.H + '-year holdings that ended in a loss'],
+  ['dd', 'Worst fall (5Y)', f => pct(f.dd), 'Biggest drop from a high in the last 5 years'],
+  ['ter', 'Expense ratio', f => fin(f.ter) ? f.ter.toFixed(2) + '%' : '–', 'Latest TER disclosed to AMFI']
+];
+const f2 = x => fin(x) ? (+x).toFixed(2) : '–';
+const COLS_SIMPLE = c => [
+  ['rh', `Usual yearly return<small>any ${c.H}-year period</small>`, f => pct(f.rh), 'Middle result of every ' + c.H + '-year period'],
+  ...(c.H === 1 ? [['rr3', 'Usual yearly return<small>any 3-year period</small>', f => pct(f.rr3), 'Middle result of every 3-year period']]
+    : [['rr5', 'Usual yearly return<small>any 5-year period</small>', f => pct(f.rr5), 'Middle result of every 5-year period']]),
+  ['ls', `Lost money<small>share of ${c.H}-year periods</small>`, f => pct(f.ls, 0), 'Share of ' + c.H + '-year periods that ended below the amount invested'],
+  ['dd', 'Biggest fall<small>last 5 years</small>', f => `${pct(f.dd)}${fin(f.dd) ? `<small class="cellsub">${f.nr ? 'not yet back' : 'back in ' + dur(f.rc)}</small>` : ''}`, 'Largest drop from a high in the last 5 years, and the time the NAV took to climb back'],
+  ['bt', 'Ahead of similar funds<small>share of the time</small>', f => pct(f.bt, 0), 'How often the fund was above the middle fund of its category'],
+  ['ter', 'Yearly cost<small>expense ratio</small>', f => fin(f.ter) ? f.ter.toFixed(2) + '%' : '–', 'Latest expense ratio disclosed to AMFI']
+];
+const MORE_SIMPLE = [
+  ['rr1', 'Usual yearly return<small>any 1-year period</small>', f => pct(f.rr1)], ['rr3', 'Usual yearly return<small>any 3-year period</small>', f => pct(f.rr3)],
+  ['rr5', 'Usual yearly return<small>any 5-year period</small>', f => pct(f.rr5)], ['rr10', 'Usual yearly return<small>any 10-year period</small>', f => pct(f.rr10)],
+  ['r1', 'Last 1 year<small>return</small>', f => pct(f.r1)], ['r3', 'Last 3 years<small>yearly return</small>', f => pct(f.r3)], ['r5', 'Last 5 years<small>yearly return</small>', f => pct(f.r5)],
+  ['aum', 'Fund size', f => crore(f.aum)], ['age', 'Age<small>since data start</small>', f => fin(f.age) ? f.age.toFixed(1) + ' yrs' : '–']
+];
+const MORE = [
+  ['rr1', 'Rolling 1Y', f => pct(f.rr1), 'Typical 1-year rolling return'], ['rr3', 'Rolling 3Y', f => pct(f.rr3), 'Typical 3-year rolling return'],
+  ['rr5', 'Rolling 5Y', f => pct(f.rr5), 'Typical 5-year rolling return'], ['rr7', 'Rolling 7Y', f => pct(f.rr7), 'Typical 7-year rolling return'],
+  ['rr10', 'Rolling 10Y', f => pct(f.rr10), 'Typical 10-year rolling return'],
+  ['r1', '1Y', f => pct(f.r1), 'Point-to-point return'], ['r3', '3Y', f => pct(f.r3), 'Point-to-point, yearly'], ['r5', '5Y', f => pct(f.r5), 'Point-to-point, yearly'], ['r10', '10Y', f => pct(f.r10), 'Point-to-point, yearly'],
+  ['so3', 'Sortino (3Y)', f => f2(f.so3), 'Like Sharpe, but counts only the falls'], ['sd3', 'Std dev (3Y)', f => pct(f.sd3), 'Yearly ups and downs, from month-end NAVs'],
+  ['be3', 'Beta (3Y)', f => f2(f.be3), 'Against the category index fund; 1 means it moves the same'], ['al3', 'Alpha (3Y)', f => pct(f.al3), 'Yearly return above what beta predicts'],
+  ['uc3', 'Up capture', f => pct(f.uc3, 0), 'Share of the index fund\'s rising months captured'], ['dc3', 'Down capture', f => pct(f.dc3, 0), 'Share of the index fund\'s falling months taken; lower is better'],
+  ['d50', 'Days to sell half', f => fin(f.d50) ? f.d50 + ' days' : '–', 'AMFI stress test: days to sell 50% of the portfolio'],
+  ['t10', 'Top 10 share', f => pct(f.t10, 0), 'Share of the fund in its 10 biggest holdings (latest portfolio)'], ['nh', 'Holdings', f => fin(f.nh) ? f.nh : '–', 'Number of securities held'],
+  ['lcp', 'Large cap', f => pct(f.lcp, 0), 'Share of equity in large caps (AMFI list)'], ['mcp', 'Mid cap', f => pct(f.mcp, 0), 'Share of equity in mid caps'], ['scp', 'Small cap', f => pct(f.scp, 0), 'Share of equity in small caps'],
+  ['ytm', 'Yield (YTM)', f => pct(f.ytm, 2), 'Weighted yield of the papers held'], ['cash', 'Cash', f => pct(f.cash), 'Cash, TREPS and receivables'],
+  ['aum', 'Fund size', f => crore(f.aum), 'Average AUM, AMFI'], ['vol', 'Volatility', f => pct(f.vol), 'From daily NAV changes, 3 years'], ['age', 'Age', f => fin(f.age) ? f.age.toFixed(1) + ' yrs' : '–', 'Since NAV data start']
+];
+function fundCell(f) {
+  const fl = (f.fl || []).map(k => `<span class="flag" title="${FLAGS[k]}">${FLAGS_SHORT[k]}</span>`).join('');
+  return `<td class="fund"><b>${esc(f.n)}</b><small>${esc(S.meta.amcs[f.a])}</small><div>${fl}</div></td>`;
+}
+function rowHTML(f, cols) {
+  const on = S.compare.includes(f.id);
+  return `<tr data-id="${f.id}" tabindex="0"><td class="rk num">${f._ok ? f._rank : ''}</td>${fundCell(f)}${cols.map(([k, , fn]) => `<td class="n">${fn(f)}</td>`).join('')}<td class="cmp"><button class="add" data-cmp="${f.id}" aria-pressed="${on}" aria-label="${on ? 'Remove from' : 'Add to'} compare">${on ? '✓' : '+'}</button></td></tr>`;
+}
+function cardHTML(c) {
+  const all = (S.ranks.get(c.i) || []);
+  const list = all.filter(amcOk);
+  if (!list.length) return '';
+  const open = S.open.has(c.i);
+  const mode = S.mode[c.i] || 'table';
+  let cols = S.view === 'simple' ? COLS_SIMPLE(c) : COLS(c), rows;
+  if (open) {
+    const shown = new Set(cols.map(x => x[0]));
+    cols = cols.concat((S.view === 'simple' ? MORE_SIMPLE : MORE).filter(x => !shown.has(x[0]) && list.some(f => fin(f[x[0]]))));
+    const st = S.sort[c.i];
+    rows = list.slice();
+    if (st) rows.sort((a, b) => { const x = a[st.k], y = b[st.k]; if (!fin(x) && !fin(y)) return 0; if (!fin(x)) return 1; if (!fin(y)) return -1; return st.d * (x - y); });
+  } else rows = list.filter(f => f._ok).slice(0, 10);
+  const label = PRESETS[S.preset].label.toLowerCase();
+  const tm = c.tm && c.tm.R ? ` · typical expense ratio ${c.tm.R.toFixed(2)}%` : '';
+  const head = `<div class="chead"><h2 id="c-${c.id}">${esc(c.n)}</h2><span class="sub">${all.length} funds · ranked by ${label}${tm}</span><span class="sp"></span>${open ? `<div class="seg" role="group" aria-label="View"><button data-mode="table" data-cat="${c.i}" aria-pressed="${mode === 'table'}">Table</button><button data-mode="years" data-cat="${c.i}" aria-pressed="${mode === 'years'}">Year by year</button></div>` : ''}</div>`;
+  const info = catInfo(c);
+  let body = '';
+  if (!rows.length) body = `<div class="empty">No fund in this category has enough history yet for its ${c.H}-year rolling return. Tick “Include funds too new to judge” to see them.</div>`;
+  else if (open && mode === 'years') body = `<div id="yh-${c.i}" class="empty">Loading year-by-year returns…</div>`;
+  else body = `<div class="tablewrap ${open ? 'stick' : ''}"><table><thead><tr><th class="n">#</th><th class="fund">Fund</th>${cols.map(([k, l, , t]) => `<th class="n" title="${esc(t || '')}">${open ? `<button data-sort="${k}" data-cat="${c.i}">${l}${S.sort[c.i]?.k === k ? (S.sort[c.i].d > 0 ? ' ↑' : ' ↓') : ''}</button>` : l}</th>`).join('')}<th><span class="lbl">Compare</span></th></tr></thead><tbody>${rows.map(f => rowHTML(f, cols)).join('')}</tbody></table></div>`;
+  const more = list.length > rows.length || open;
+  const foot = `<div class="cfoot"><span class="note">${open ? 'Tap a column to sort. Rank stays the category rank.' : (S.amcs.size ? 'Filtered by fund house; rank is within the whole category.' : `Top ${Math.min(10, rows.length)} of ${list.length}`)}</span>${more ? `<button class="btn" data-open="${c.i}" aria-expanded="${open}">${open ? 'Show top 10' : `Show all ${list.length} funds`}</button>` : ''}</div>`;
+  return `<article class="card" data-card="${c.i}">${head}${info ? `<p class="cdesc">${esc(info)}</p>` : ''}${body}${foot}</article>`;
+}
+function renderCards() {
+  const cats = S.cat !== null ? S.meta.cats.filter(c => c.i === S.cat) : S.meta.cats.filter(c => c.g === S.group);
+  const html = cats.map(cardHTML).join('');
+  $('#cards').innerHTML = html || `<div class="empty">No funds match the fund houses you picked in this group.</div>`;
+  for (const c of cats) if (S.open.has(c.i) && S.mode[c.i] === 'years') yearHeat(c);
+}
+async function yearHeat(c) {
+  const box = document.getElementById('yh-' + c.i);
+  if (!box) return;
+  const list = (S.ranks.get(c.i) || []).filter(amcOk);
+  const byPlan = {};
+  for (const p of new Set(list.map(f => f.p))) byPlan[p] = await catData(c.i, p);
+  const years = new Set();
+  for (const f of list) for (const [y] of (byPlan[f.p].f[f.id]?.yr || [])) years.add(y);
+  const ys = [...years].sort().slice(-10);
+  if (!ys.length) { box.textContent = 'Not enough history for calendar-year returns.'; return; }
+  const cells = [`<div></div>`, ...ys.map(y => `<div class="hd">${yLab(y)}</div>`)];
+  for (const f of list) {
+    const m = new Map((byPlan[f.p].f[f.id]?.yr || []).map(r => [r[0], r]));
+    cells.push(`<div class="rowl" title="${esc(f.n)}">${f._ok ? f._rank + '. ' : ''}${esc(f.n)}</div>`);
+    for (const y of ys) { const r = m.get(y); cells.push(r ? `<div class="cell q${r[2] || 'x'} ${r[2] ? '' : 'na'}" title="${y}: ${pct(r[1])}${r[2] ? ', quarter ' + r[2] : ''}">${pct(r[1], 0)}</div>` : `<div class="cell na">–</div>`); }
+  }
+  box.outerHTML = `<div class="tablewrap"><div class="yh" style="grid-template-columns:minmax(160px,240px) repeat(${ys.length},minmax(52px,1fr));min-width:${200 + ys.length * 56}px">${cells.join('')}</div></div>${qKey()}`;
+}
+const yLab = y => y === +S.meta.asOf.slice(0, 4) ? y + ' so far' : y;
+const qKey = () => `<div class="qkey"><span><i style="background:var(--q1)"></i>Top quarter of category that year</span><span><i style="background:var(--q2)"></i>Second</span><span><i style="background:var(--q3)"></i>Third</span><span><i style="background:var(--q4)"></i>Bottom quarter</span></div>`;
+
+function renderAll() { rankAll(); renderTop(); renderTabs(); renderCards(); renderTray(); }
+
+/* ------------------------------------------------------------------ charts */
+function niceTicks(lo, hi, n = 5) {
+  const span = hi - lo || 1, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(k => k * mag).find(s => s >= step0) || mag * 10;
+  const t = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(6));
+  return t;
+}
+function lineChart(el, cfg) {
+  el.innerHTML = '<svg role="img" aria-label="' + esc(cfg.label || 'chart') + '"></svg><div class="tip" hidden></div>';
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  const ser = cfg.series.filter(s => s.v && s.v.some(fin));
+  if (!ser.length) { el.innerHTML = '<div class="empty">Not enough history to draw this.</div>'; return; }
+  let xmin = Infinity, xmax = -Infinity, ymin = cfg.zero ? 0 : Infinity, ymax = cfg.zero ? 0 : -Infinity;
+  for (const s of ser) { xmin = Math.min(xmin, s.o); xmax = Math.max(xmax, s.o + s.v.length - 1); }
+  if (cfg.clip) { xmin = Math.max(xmin, cfg.clip[0]); xmax = Math.min(xmax, cfg.clip[1]); }
+  for (const s of ser) s.v.forEach((v, j) => { const i = s.o + j; if (fin(v) && i >= xmin && i <= xmax) { ymin = Math.min(ymin, v); ymax = Math.max(ymax, v); } });
+  const pad = (ymax - ymin) * .08 || 1; ymin -= cfg.area ? pad * .3 : pad; ymax += pad;
+  if (cfg.area) ymax = Math.max(ymax, 0);
+  let X, Y, W, H, L = 48, R = 14, T = 10, B = 26;
+  const draw = () => {
+    W = el.clientWidth; H = el.clientHeight; if (!W || !H) return;
+    const small = W < 520;
+    L = small ? 40 : 50;
+    X = i => L + (i - xmin) / Math.max(1, xmax - xmin) * (W - L - R);
+    Y = v => T + (ymax - v) / (ymax - ymin) * (H - T - B);
+    const yt = niceTicks(ymin, ymax, small ? 4 : 5);
+    let g = yt.map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 7}" y="${Y(v) + 4}" text-anchor="end" font-size="11.5" fill="var(--muted)" class="num">${cfg.fmt(v)}</text>`).join('');
+    if (ymin < 0 && ymax > 0) g += `<line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--line2)" stroke-width="1"/>`;
+    const nY = (xmax - xmin) / 12, every = Math.max(1, Math.ceil(nY / ((W - L - R) / (small ? 64 : 58))));
+    for (let i = Math.ceil(xmin); i <= xmax; i++) {
+      const m = S.meta.m0 + i; if (((m % 12) + 12) % 12) continue;
+      const yr = 1970 + Math.floor(m / 12); if (yr % every) continue;
+      g += `<text x="${X(i)}" y="${H - 6}" text-anchor="middle" font-size="11.5" fill="var(--muted)" class="num">${small ? "'" + String(yr).slice(2) : yr}</text>`;
+    }
+    for (const s of ser) {
+      let d = '', pen = false, a = '', first = null, lastPt = null;
+      s.v.forEach((v, j) => {
+        if (!fin(v) || s.o + j < xmin || s.o + j > xmax) { pen = false; return; }
+        const x = X(s.o + j).toFixed(1), y = Y(v).toFixed(1);
+        d += (pen ? 'L' : 'M') + x + ' ' + y; pen = true;
+        if (first === null) first = x; lastPt = [x, y];
+      });
+      if (cfg.area && lastPt) a = `<path d="${d}L${lastPt[0]} ${Y(0)}L${first} ${Y(0)}Z" fill="${s.color}" fill-opacity=".1"/>`;
+      g += a + `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w || 2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if (lastPt && !cfg.area) g += `<circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="4" fill="${s.color}" stroke="var(--bg)" stroke-width="2"/>`;
+    }
+    g += `<line class="xh" y1="${T}" y2="${H - B}" stroke="var(--ink2)" stroke-width="1" visibility="hidden"/>` + ser.map((s, k) => `<circle class="hd${k}" r="4" fill="${s.color}" stroke="var(--bg)" stroke-width="2" visibility="hidden"/>`).join('');
+    g += `<rect x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent" class="hit"/>`;
+    svg.innerHTML = g;
+  };
+  const move = e => {
+    const r = svg.getBoundingClientRect(), px = e.clientX - r.left;
+    const i = Math.round(xmin + (px - L) / (W - L - R) * Math.max(1, xmax - xmin));
+    if (i < xmin || i > xmax) return leave();
+    const rows = [];
+    ser.forEach((s, k) => {
+      const v = s.v[i - s.o], c = svg.querySelector('.hd' + k);
+      if (i < xmin || i > xmax) return;
+      if (fin(v)) { c.setAttribute('cx', X(i)); c.setAttribute('cy', Y(v)); c.setAttribute('visibility', 'visible'); rows.push(`<div><b>${cfg.fmt(v, true)}</b><span class="key" style="--c:${s.color}"></span>${esc(s.name)}</div>`); }
+      else c.setAttribute('visibility', 'hidden');
+    });
+    const xh = svg.querySelector('.xh'); xh.setAttribute('x1', X(i)); xh.setAttribute('x2', X(i)); xh.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<div class="t">${cfg.xLabel ? cfg.xLabel(i) : monthName(i)}</div>${rows.join('') || '<div>No value</div>'}`;
+    tip.hidden = false;
+    const tw = tip.offsetWidth, left = X(i) + 14 + tw > W ? X(i) - tw - 14 : X(i) + 14;
+    tip.style.left = Math.max(0, left) + 'px'; tip.style.top = '6px';
+  };
+  const leave = () => { tip.hidden = true; svg.querySelectorAll('.xh,[class^=hd]').forEach(n => n.setAttribute('visibility', 'hidden')); };
+  svg.addEventListener('pointermove', move); svg.addEventListener('pointerleave', leave);
+  const ro = new ResizeObserver(draw); ro.observe(el);
+}
+function legend(items, sw = 'line') {
+  return `<div class="legend">${items.map(([n, c]) => `<span><i class="${sw === 'box' ? 'sw' : 'key'}" style="--c:${c}"></i>${esc(n)}</span>`).join('')}</div>`;
+}
+function fromPct(p, t) { // share of periods (%) at or above t, from 21 percentiles
+  if (!p) return null;
+  if (t <= p[0]) return 100; if (t > p[20]) return 0;
+  for (let i = 0; i < 20; i++) if (t <= p[i + 1]) { const f = p[i + 1] === p[i] ? 1 : (t - p[i]) / (p[i + 1] - p[i]); return 100 - (i + f) * 5; }
+  return 0;
+}
+
+/* ------------------------------------------------------------------ fund page */
+function openDrawer(html, label) {
+  const d = $('#drawer');
+  d.innerHTML = html; d.hidden = false; $('#scrim').hidden = false;
+  document.body.style.overflow = 'hidden';
+  d.scrollTop = 0;
+  d.querySelector('.x')?.focus();
+  d.setAttribute('aria-label', label || '');
+}
+function closeDrawer() {
+  $('#drawer').hidden = true; $('#scrim').hidden = true; document.body.style.overflow = '';
+  if (location.hash.startsWith('#fund-') || location.hash === '#compare') history.replaceState(null, '', location.pathname + location.search + (S.cat !== null ? '#' + catOf({ c: S.cat }).id : S.group ? '#' + S.group.replace(/[^A-Za-z0-9-]/g, '-') : ''));
+}
+
+async function showFund(id) {
+  const f = S.byId.get(+id); if (!f) return;
+  const c = catOf(f);
+  history.replaceState(null, '', '#fund-' + f.id);
+  openDrawer(`<div class="dtop"><div><h2 id="dTitle">${esc(f.n)}</h2><p>Loading…</p></div><button class="x" aria-label="Close">×</button></div>`, f.n);
+  let cd;
+  try { cd = await catData(f.c, f.p); } catch (e) { $('#drawer .dtop p').textContent = 'Could not load this fund\'s history.'; return; }
+  const det = cd.f[f.id] || {};
+  const list = S.ranks.get(f.c) || [];
+  const planName = 'Regular plan';
+  const on = S.compare.includes(f.id);
+  const src = S.meta.sources;
+  const H = c.H;
+  const bench = (fin(f.b1) || fin(f.b3) || fin(f.b5)) ? `<table class="mtable"><thead><tr><th>Point-to-point return</th><th class="n">1Y</th><th class="n">3Y</th><th class="n">5Y</th><th class="n">10Y</th></tr></thead><tbody>
+      <tr><td>This fund</td><td class="n">${pct(f.r1)}</td><td class="n">${pct(f.r3)}</td><td class="n">${pct(f.r5)}</td><td class="n">${pct(f.r10)}</td></tr>
+      <tr><td>Benchmark${f.bm ? ': ' + esc(f.bm) : ''}</td><td class="n">${pct(f.b1)}</td><td class="n">${pct(f.b3)}</td><td class="n">${pct(f.b5)}</td><td class="n">–</td></tr></tbody></table>`
+    : `<table class="mtable"><thead><tr><th>Point-to-point return</th><th class="n">1Y</th><th class="n">3Y</th><th class="n">5Y</th><th class="n">10Y</th></tr></thead><tbody><tr><td>This fund</td><td class="n">${pct(f.r1)}</td><td class="n">${pct(f.r3)}</td><td class="n">${pct(f.r5)}</td><td class="n">${pct(f.r10)}</td></tr></tbody></table>`;
+  const flags = (f.fl || []).map(k => `<span class="flag">${FLAGS[k]}</span>`).join('');
+  const ddi = det.ddi || {};
+  const html = `
+  <div class="dtop"><div><h2 id="dTitle">${esc(f.n)}</h2><p>${esc(S.meta.amcs[f.a])} · ${esc(c.n)} · ${planName}</p></div>
+    <button class="btn" data-cmp="${f.id}" aria-pressed="${on}">${on ? 'In compare' : 'Add to compare'}</button><button class="x" aria-label="Close">×</button></div>
+  <div class="dbody">
+    <div class="facts"><span>NAV <b class="num">₹${f.nav}</b> on ${dmy(f.nd)}</span><span>Expense ratio <b>${fin(f.ter) ? f.ter.toFixed(2) + '%' : '–'}</b></span><span>Fund size <b>${crore(f.aum)}</b>${f.al === 'f' ? ' (all plans)' : ''}</span><span>NAV data since <b>${dmy(f.st)}</b></span>${f._ok ? `<span>Rank <b>${f._rank} of ${list.length}</b> by ${PRESETS[S.preset].label.toLowerCase()}</span>` : ''}</div>
+    ${flags ? `<div style="margin-top:8px">${flags}</div>` : ''}
+    <div class="tiles">
+      <div class="tile"><span>Usual yearly return, any ${H}-year period</span><b>${pct(f.rh)}</b><small>worst ${pct(f.rhLo)}, best ${pct(f.rhHi)}</small></div>
+      <div class="tile"><span>Lost money over ${H} year${H > 1 ? 's' : ''}</span><b>${pct(f.ls, 0)}</b><small>of all past ${H}-year periods</small></div>
+      <div class="tile"><span>Biggest fall, last 5 years</span><b>${pct(f.dd)}</b><small>back to the high in: ${dur(f.rc, f.nr)}</small></div>
+      <div class="tile"><span>Ahead of similar funds</span><b>${pct(f.bt, 0)}</b><small>of the time${fin(f.bi) ? ` · ahead of the index fund ${pct(f.bi, 0)}` : ''}</small></div>
+    </div>
+    ${plainWords(f, c, list)}
+    <div style="margin-top:12px" class="tablewrap">${bench}</div>
+
+    <section class="sec"><h3>Rolling returns</h3>
+      <p class="lede">The yearly return for every possible holding period of this length, ending on each date. A flat, high line means steady results whenever you invested.</p>
+      <div class="ctl"><div class="seg" role="group" aria-label="Holding period" id="rwin">${[1, 3, 5, 7, 10].map(w => `<button data-w="${w}" aria-pressed="${w === H}" ${det.pc && det.pc[w] ? '' : 'disabled'}>${w}Y</button>`).join('')}</div>
+        <label>How often above <input type="range" id="thr" min="0" max="20" step="0.5" value="${c.k === 'd' ? 6 : 10}"> <b class="num" id="thrv"></b></label></div>
+      <div id="rleg"></div><div class="fig" id="rchart"></div><div class="statrow" id="rstats"></div>
+    </section>
+
+    <section class="sec"><h3>Risk and return measures (key ratios)</h3>
+      <p class="lede">Worked out from this fund's month-end NAVs, next to the typical fund in its category. Green means better than the typical fund, red means worse.${cd.px && cd.px.id !== f.id ? ' Beta, alpha and capture compare it with ' + esc(cd.px.n) + '.' : ''}</p>
+      <div class="ctl"><div class="seg" role="group" aria-label="Ratio period" id="kwin">${['3', '5'].map(w => `<button data-k="${w}" aria-pressed="${w === '3'}" ${det.ra && det.ra[w] ? '' : 'disabled'}>${w} years</button>`).join('')}</div></div>
+      <div id="ratios"></div>
+    </section>
+${det.rp ? riskHTML(det.rp, c) : ''}
+    <section class="sec" id="psec"><h3>Portfolio</h3>
+      <div id="port"><div class="empty">${f.pm ? 'Loading the latest portfolio…' : 'No portfolio file from this fund house has been read yet. It appears here after the fund house publishes its monthly file (by the 10th of each month).'}</div></div>
+    </section>
+
+    <section class="sec"><h3>Chance of loss by holding period</h3>
+      <p class="lede">Out of every past holding period of each length, the share that ended with less money than invested. The second number uses the level from the slider above.</p>
+      <div id="loss"></div>
+    </section>
+
+    <section class="sec"><h3>Pain meter</h3>
+      <p class="lede">How far the NAV fell below its previous high, month by month.</p>
+      <div class="statrow">
+        <div><span>Worst fall ever</span><b>${pct(ddi.all?.[3])}</b><small>${ddi.all ? dmy(ddi.all[0]) + ' to ' + dmy(ddi.all[1]) : ''}</small></div>
+        <div><span>Back to that high</span><b>${ddi.all ? (ddi.all[2] ? dmy(ddi.all[2]) : 'Not yet') : '–'}</b></div>
+        <div><span>Worst fall, last 5 years</span><b>${pct(ddi['5y']?.[3])}</b><small>${ddi['5y'] ? dmy(ddi['5y'][0]) + ' to ' + dmy(ddi['5y'][1]) : ''}</small></div>
+        <div><span>Now below its high by</span><b>${pct(f.cur)}</b></div>
+      </div>
+      <div class="fig sm" id="ddchart"></div>
+    </section>
+
+    <section class="sec"><h3>Crash replay</h3>
+      <p class="lede">The fund's biggest fall inside each market episode, next to the typical fall in its category, and how long it took to get back to its high.</p>
+      ${legend([['This fund', 'var(--s1)'], ['Category typical', 'var(--catc)']], 'box')}
+      <div id="crash"></div>
+    </section>
+
+    <section class="sec"><h3>SIP range</h3>
+      <p class="lede">A monthly SIP started in every possible month of this fund's history. The bar shows the spread of results; the dark mark is the typical one.</p>
+      <div class="ctl"><div class="seg" role="group" aria-label="SIP length" id="swin">${[3, 5, 10].map(y => `<button data-y="${y}" aria-pressed="${y === 5}" ${det.sip && det.sip[y] ? '' : 'disabled'}>${y} years</button>`).join('')}</div>
+        <label>SIP per month <input type="number" id="sipamt" min="500" step="500" value="10000"></label></div>
+      <div id="sip"></div>
+    </section>
+
+    <section class="sec"><h3>Money in hand</h3>
+      <p class="lede">A lump sum grown at this fund's typical (or bad-case) rolling return, then after capital gains tax and inflation. An estimate for planning, not a promise.</p>
+      <div class="ctl">
+        <label>Amount <input type="number" id="mamt" min="1000" step="1000" value="100000"></label>
+        <label>Years <select id="myrs">${[1, 3, 5, 7, 10].filter(w => det.pc && det.pc[w]).map(w => `<option value="${w}" ${w === (det.pc[5] ? 5 : H) ? 'selected' : ''}>${w}</option>`).join('')}</select></label>
+        <label>Tax slab <select id="mslab">${[0, 5, 10, 15, 20, 30].map(s => `<option value="${s}" ${s === 30 ? 'selected' : ''}>${s}%</option>`).join('')}</select></label>
+        <label>Inflation <input type="number" id="minf" min="0" max="15" step="0.5" value="6" style="width:80px">%</label>
+        <div class="seg" role="group" aria-label="Scenario" id="mscn"><button data-s="10" aria-pressed="true">Typical</button><button data-s="1" aria-pressed="false">Bad case</button></div>
+      </div>
+      <div id="money"></div>
+    </section>
+
+    <section class="sec"><h3>Year by year</h3>
+      <p class="lede">Calendar-year returns, coloured by where the fund finished in its category that year.</p>
+      <div class="yrs" id="yrs"></div>${qKey().replace('class="qkey"', 'class="qkey" style="padding:10px 0 0"')}
+    </section>
+
+    <section class="sec"><h3>NAV history</h3>
+      <p class="lede">What ₹10,000 invested at the start of the data would be worth, month by month.</p>
+      <div class="fig sm" id="navchart"></div>
+    </section>
+
+    <p class="src">Sources: NAV from AMFI, up to ${dmy(f.nd)}. ${src.ter ? 'Expense ratio: ' + esc(src.ter) + '. ' : ''}${det.rp && src.risk ? 'Stress test and PE: ' + esc(src.risk) + '. ' : ''}${src.aum ? 'Fund size: ' + esc(src.aum) + '. ' : ''}${src.perf ? 'Benchmark returns: ' + esc(src.perf) + '. ' : ''}All other figures are calculated from AMFI NAVs. Past performance may or may not be sustained in future. For educational purposes only; not investment advice.</p>
+  </div>`;
+  openDrawer(html, f.n);
+  fundCharts(f, c, cd, det);
+}
+
+const SIMPLE_RATIOS = { ret: 'Yearly return', sd: 'Ups and downs', sharpe: 'Return for the risk taken', dncap: 'Share of market falls taken', worst: 'Worst month' };
+const RATIO_ROWS = [
+  ['ret', 'Yearly return', 'pct', 1, 'Compound yearly return over the period.'],
+  ['sd', 'Standard deviation', 'pct', -1, 'How much monthly returns swing, as a yearly figure. Lower means a steadier ride.'],
+  ['sharpe', 'Sharpe ratio', 'f2', 1, 'Return above the overnight-fund rate for each unit of standard deviation. Higher is better.'],
+  ['sortino', 'Sortino ratio', 'f2', 1, 'Like Sharpe, but only the falls count as risk. Higher is better.'],
+  ['beta', 'Beta', 'f2', 0, 'How much the fund moved when the index fund moved 1%. Below 1 means it moved less.'],
+  ['alpha', 'Alpha', 'pct', 1, 'Yearly return above what its beta would predict. Higher is better.'],
+  ['r2', 'R-squared', 'pct0', 0, 'How closely the fund followed the index fund (100% means exactly). Beta and alpha mean more when this is high.'],
+  ['upcap', 'Up-market capture', 'pct0', 1, "Share of the index fund's gain the fund kept in rising months."],
+  ['dncap', 'Down-market capture', 'pct0', -1, "Share of the index fund's loss the fund took in falling months. Lower is better."],
+  ['ir', 'Information ratio', 'f2', 1, 'Return above the index fund for each unit of tracking error.'],
+  ['te', 'Tracking error', 'pct', 0, "How far the fund's monthly returns strayed from the index fund's, as a yearly figure."],
+  ['pos', 'Months with a gain', 'pct0', 1, 'Share of months in which the NAV ended higher.'],
+  ['worst', 'Worst month', 'pct', 1, 'Biggest one-month fall in the period.']
+];
+const fmtR = (v, t) => !fin(v) ? '–' : t === 'pct' ? pct(v) : t === 'pct0' ? pct(v, 0) : (+v).toFixed(2);
+function plainWords(f, c, list) {
+  const H = c.H, yrs = `${H}-year`, out = [];
+  const since = f.st ? `${MON[+f.st.slice(5, 7) - 1]} ${f.st.slice(0, 4)}` : '';
+  if (fin(f.rh)) out.push(`Looking at every ${yrs} period since ${since}, the usual return was <b>${pct(f.rh)} a year</b>. The worst ${yrs} period gave ${pct(f.rhLo)} a year and the best gave ${pct(f.rhHi)} a year.`);
+  else out.push(`This fund has less than ${H} year${H > 1 ? 's' : ''} of NAV history, so there are not enough ${yrs} periods to judge it yet.`);
+  if (fin(f.ls)) out.push(f.ls === 0 ? `No ${yrs} period ended with less money than was invested.` : `<b>${pct(f.ls, 0)}</b> of all ${yrs} periods ended with less money than was invested.`);
+  if (fin(f.dd)) out.push(`Its biggest fall in the last 5 years was <b>${pct(f.dd)}</b>; ${f.nr ? 'the NAV has not yet climbed back to that high.' : `the NAV took ${dur(f.rc)} to get back to its old high.`}`);
+  if (fin(f.bt)) out.push(`It was ahead of the middle ${esc(c.n.toLowerCase())} <b>${pct(f.bt, 0)}</b> of the time.`);
+  if (fin(f.ter)) out.push(`It takes <b>${f.ter.toFixed(2)}% a year</b> as expenses${c.tm?.R ? `; the typical fund in this category takes ${c.tm.R.toFixed(2)}%` : ''}.`);
+  if (fin(f.nh)) out.push(`Its latest portfolio has ${f.nh} holdings, and the 10 biggest make up ${pct(f.t10, 0)} of the fund.`);
+  return `<div class="plain"><h3>In plain words</h3><ul>${out.map(x => `<li>${x}</li>`).join('')}</ul></div>
+    <div class="edu sm"><b>For educational purposes only. Not investment advice.</b> These figures describe the past and are not a recommendation about this scheme.</div>`;
+}
+function riskHTML(rp, c) {
+  const capBar = [['Large cap', rp.lc, 'var(--s1)'], ['Mid cap', rp.mc, 'var(--s3)'], ['Small cap', rp.sc, 'var(--s4)'], ['Cash', rp.cash, 'var(--catc)']].filter(x => fin(x[1]) && x[1] > 0);
+  const m = rp.m ? ' for ' + monthLabel(rp.m) : '';
+  return `
+    <section class="sec"><h3>AMFI risk check</h3>
+      <p class="lede">Every month AMFI publishes these figures for mid cap and small cap funds${m}: how long it would take to sell part of the portfolio, how much the biggest investors hold, and how expensive the stocks are.</p>
+      <div class="tiles" style="padding-top:4px">
+        <div class="tile"><span>Days to sell half the portfolio</span><b>${fin(rp.d50) ? rp.d50 : '–'}</b><small>a quarter: ${fin(rp.d25) ? rp.d25 + ' days' : '–'}</small></div>
+        <div class="tile"><span>Top 10 investors hold</span><b>${pct(rp.top10inv)}</b><small>of the fund's money</small></div>
+        <div class="tile"><span>Portfolio PE (12 months)</span><b>${fin(rp.pe) ? rp.pe.toFixed(1) : '–'}</b><small>benchmark ${fin(rp.bpe) ? rp.bpe.toFixed(1) : '–'}${fin(rp.bpe1) ? ', a year ago ' + rp.bpe1.toFixed(1) : ''}</small></div>
+        <div class="tile"><span>Portfolio turnover</span><b>${fin(rp.turn) ? rp.turn.toFixed(2) + '×' : '–'}</b><small>times in a year</small></div>
+        <div class="tile"><span>Standard deviation</span><b>${pct(rp.sd)}</b><small>benchmark ${pct(rp.bsd)} · beta ${fin(rp.beta) ? rp.beta.toFixed(2) : '–'}</small></div>
+      </div>
+      ${capBar.length ? `<div class="sub3">Where the money is (AMFI figures)</div><div class="stack" role="img" aria-label="${capBar.map(x => x[0] + ' ' + pct(x[1])).join(', ')}">${capBar.map(x => `<i style="--c:${x[2]};width:${x[1]}%" title="${x[0]} ${pct(x[1])}"></i>`).join('')}</div>
+      <div class="skey">${capBar.map(x => `<span><i style="--c:${x[2]}"></i>${x[0]} ${pct(x[1])}</span>`).join('')}</div>` : ''}
+    </section>`;
+}
+const monthLabel = ym => { if (!ym) return ''; const [y, m] = ym.split('-'); return `${MON[+m - 1]} ${y}`; };
+const MIXC = ['var(--s1)', 'var(--s3)', 'var(--s4)', 'var(--s2)', '#8a6fd1', '#3aa9b6', '#c46aa6', '#b1a35a', 'var(--catc)', '#8f8b7a', 'var(--fall)'];
+function bars(rows, color) {
+  const mx = Math.max(...rows.map(r => r[1]), 1);
+  return `<div class="hb" style="grid-template-columns:minmax(110px,190px) minmax(0,1fr) 58px">${rows.map(([l, v]) => `<span class="l" title="${esc(l)}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(l)}</span><div class="bar"><i style="width:${Math.max(.6, v / mx * 100)}%;--c:${color}"></i></div><span class="v">${pct(v)}</span>`).join('')}</div>`;
+}
+function stackBar(rows, label) {
+  const tot = rows.reduce((a, r) => a + Math.max(0, r[1]), 0) || 1;
+  const pos = rows.filter(r => r[1] > 0);
+  return `<div class="stack" role="img" aria-label="${esc(label)}: ${pos.map(r => r[0] + ' ' + pct(r[1])).join(', ')}">${pos.map((r, i) => `<i style="--c:${MIXC[i % MIXC.length]};width:${r[1] / tot * 100}%" title="${esc(r[0])} ${pct(r[1])}"></i>`).join('')}</div>
+    <div class="skey">${rows.map((r, i) => `<span><i style="--c:${r[1] > 0 ? MIXC[pos.indexOf(r) % MIXC.length] : 'transparent'}"></i>${esc(r[0])} ${pct(r[1])}</span>`).join('')}</div>`;
+}
+async function portOf(f) {
+  const key = 'p:' + catOf(f).id;
+  if (!S.cache.has(key)) S.cache.set(key, getJSON(`data/p/${catOf(f).id}.json`));
+  const all = await S.cache.get(key);
+  if (!all[f.id]) throw new Error('no portfolio');
+  return all[f.id];
+}
+async function portfolio(f) {
+  const box = $('#drawer #port');
+  if (!box || !f.pm) return;
+  let P;
+  try { P = await portOf(f); } catch (e) { box.innerHTML = '<div class="warn">Could not load the portfolio.</div>'; return; }
+  if (!$('#drawer #port')) return;
+  const kv = P.kv || {};
+  const tiles = [
+    ['Holdings', P.n, P.ns && P.ns !== P.n ? P.ns + ' stocks' : (P.ns ? 'all stocks' : 'securities')],
+    ['Top 10 holdings', pct(P.t10), 'of the fund'],
+    P.eq ? ['Equity', pct(P.eq), P.hedged ? 'plus ' + pct(P.hedged) + ' in arbitrage' : 'of the fund'] : null,
+    ['Cash and others', pct(P.cash), 'TREPS, receivables'],
+    fin(P.ytm) ? ['Yield (YTM)', pct(P.ytm, 2), 'weighted, papers that show one'] : (fin(kv.ytm) ? ['Yield (YTM)', pct(kv.ytm, 2), 'as printed by the fund house'] : null),
+    fin(kv.moddur) ? ['Modified duration', kv.moddur.toFixed(2) + ' yrs', 'as printed'] : null,
+    fin(kv.macdur) ? ['Macaulay duration', kv.macdur.toFixed(2) + ' yrs', 'as printed'] : null,
+    fin(kv.avgmat) ? ['Average maturity', kv.avgmat.toFixed(2) + ' yrs', 'as printed'] : null,
+    fin(kv.turnover) ? ['Portfolio turnover', kv.turnover.toFixed(2) + '×', 'as printed'] : null
+  ].filter(Boolean);
+  const own = [fin(kv.sd) ? 'standard deviation ' + pct(kv.sd) : '', fin(kv.sharpe) ? 'Sharpe ' + kv.sharpe.toFixed(2) : '', fin(kv.beta) ? 'beta ' + kv.beta.toFixed(2) : ''].filter(Boolean);
+  const H = P.h || [], nH = H.filter(h => h[4] !== 'arb').length;
+  const row = h => `<tr><td>${esc(h[1])}</td><td class="muted">${esc(h[3] || '')}</td><td class="n">${pct(h[2], 2)}</td></tr>`;
+  const ch = P.chg;
+  const lst = (t, arr, n, fmt) => `<div><b>${t} (${n})</b>${arr.length ? `<ol>${arr.map(fmt).join('')}</ol>` : '<span class="muted">None</span>'}</div>`;
+  box.innerHTML = `<p class="lede">As on <b>${dmy(P.month)}</b>, from the fund house's monthly portfolio file.</p>
+    <div class="tiles" style="padding-top:2px">${tiles.map(([a, b, c2]) => `<div class="tile"><span>${a}</span><b class="num">${b}</b><small>${c2}</small></div>`).join('')}</div>
+    <div class="sub3">Asset mix</div>${stackBar(P.mix || [], 'Asset mix')}
+    ${P.caps && P.caps.length ? `<div class="sub3">Equity by company size</div>${stackBar(P.caps, 'Market cap')}<p class="src" style="margin-top:2px">Share of the fund. Groups from AMFI's list of listed companies by average market cap (top 100 large, next 150 mid, rest small).</p>` : ''}
+    <div class="cols2">
+      ${P.sect && P.sect.length ? `<div><div class="sub3">Sectors (equity)</div>${bars(P.sect, 'var(--s1)')}</div>` : ''}
+      ${P.rate && P.rate.length ? `<div><div class="sub3">Credit quality (debt)</div>${bars(P.rate, 'var(--s3)')}</div>` : ''}
+    </div>
+    <div class="sub3">Top holdings</div>${P.hedged ? `<p class="src" style="margin:0 0 4px">Arbitrage positions are shares bought with their futures sold at the same time, to earn the small price gap. They are shown as one line and left out of the sectors, company size and top 10.</p>` : ''}
+    <div class="tablewrap"><table class="mtable"><thead><tr><th>Holding</th><th>Sector / rating</th><th class="n">% of fund</th></tr></thead><tbody id="hrows">${H.slice(0, 10).map(row).join('')}</tbody></table></div>
+    ${H.length > 10 ? `<button class="btn" id="hall" style="margin-top:8px">Show all ${nH} holdings</button>` : ''}
+    ${ch ? `<div class="sub3">What changed since ${dmy(ch.from)}</div><p class="lede" style="margin:0">By number of shares or units held, so price moves don't count as buying or selling.</p>
+      <div class="chg">
+        ${lst('Bought new', ch.new, ch.nn, x => `<li>${esc(x[0])} <span class="muted">${pct(x[1], 2)}</span></li>`)}
+        ${lst('Added to', ch.add, ch.na, x => `<li>${esc(x[0])} <span class="muted">+${x[2]}% shares</span></li>`)}
+        ${lst('Cut', ch.cut, ch.nc, x => `<li>${esc(x[0])} <span class="muted">${x[2]}% shares</span></li>`)}
+        ${lst('Sold fully', ch.gone, ch.ng, x => `<li>${esc(x[0])} <span class="muted">was ${pct(x[1], 2)}</span></li>`)}
+      </div>` : ''}
+    ${own.length ? `<p class="src">The fund house's own file also prints ${own.join(', ')}. These use its own benchmark and risk-free rate, so they differ a little from the key ratios above.</p>` : ''}
+    <p class="src">Source: ${esc(P.src || '')}. Holdings and weights as published by the fund house.</p>`;
+  const b = box.querySelector('#hall');
+  if (b) b.addEventListener('click', () => { const open = b.dataset.open === '1'; box.querySelector('#hrows').innerHTML = (open ? H.slice(0, 10) : H).map(row).join(''); b.dataset.open = open ? '0' : '1'; b.textContent = open ? `Show all ${nH} holdings` : 'Show top 10'; });
+}
+
+function fundCharts(f, c, cd, det) {
+  const D = $('#drawer');
+  let kw = det.ra?.['3'] ? '3' : '5', showAll = false;
+  D.querySelector('#ratios').addEventListener('click', e => { if (e.target.closest('#kall')) { showAll = !showAll; drawRatios(); } });
+  const drawRatios = () => {
+    const r = det.ra?.[kw], md = cd.rmed?.[kw] || {};
+    const box = D.querySelector('#ratios');
+    if (!r) { box.innerHTML = '<div class="warn">This fund needs at least 3 years of month-end NAVs for these ratios.</div>'; return; }
+    const to = S.meta.ratioTo, from = to - (+kw * 12) + 1;
+    const simple = S.view === 'simple' && !showAll;
+    const rows = RATIO_ROWS.filter(([k]) => fin(r[k]) && (!simple || SIMPLE_RATIOS[k]));
+    const nAll = RATIO_ROWS.filter(([k]) => fin(r[k])).length;
+    box.innerHTML = `<div class="tablewrap"><table class="mtable rt"><thead><tr><th>Measure</th><th class="n">This fund</th><th class="n">Category typical</th><th>What it tells you</th></tr></thead><tbody>${rows.map(([k, l, t, dir, help]) => {
+      const v = r[k], m = md[k];
+      const cls = dir && fin(m) && Math.abs(v - m) > 1e-9 ? ((v - m) * dir > 0 ? 'better' : 'worse') : '';
+      const name = S.view === 'simple' && SIMPLE_RATIOS[k] ? `${SIMPLE_RATIOS[k]}${SIMPLE_RATIOS[k] !== l ? ` <small style="font-weight:400;color:var(--muted)">(${l})</small>` : ''}` : l;
+      return `<tr><td>${name}<small class="hm">${help}</small></td><td class="n ${cls}">${fmtR(v, t)}</td><td class="n">${fmtR(m, t)}</td><td><small>${help}</small></td></tr>`;
+    }).join('')}</tbody></table></div>
+    ${S.view === 'simple' && nAll > rows.length ? `<button class="btn morebtn" id="kall">Show all ${nAll} measures</button>` : (S.view === 'simple' && showAll ? '<button class="btn morebtn" id="kall">Show fewer</button>' : '')}
+    <p class="src">${monthName(from)} to ${monthName(to)}, ${+kw * 12} month-end NAVs. Risk-free rate: the typical overnight fund's return${fin(S.meta.rf) ? ` (about ${S.meta.rf.toFixed(1)}% a year over the last 3 years)` : ''}. Green and red mark better or worse than the category's typical fund. Fund houses' factsheets use their own benchmark index and risk-free rate, so their figures can differ a little.</p>`;
+  };
+  D.querySelector('#kwin').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if (!b || b.disabled) return; kw = b.dataset.k; D.querySelectorAll('#kwin button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawRatios(); });
+  D.querySelectorAll('#kwin button').forEach(x => x.setAttribute('aria-pressed', x.dataset.k === kw));
+  drawRatios();
+  portfolio(f);
+  let win = c.H, thr = +D.querySelector('#thr').value;
+  const drawRolling = () => {
+    const ser = [];
+    const fr = det.rr?.[win]; if (fr) ser.push({ name: 'This fund', color: 'var(--s1)', o: fr[0], v: fr[1], w: 2.4 });
+    const md = cd.med?.[win]; if (md) ser.push({ name: 'Category typical', color: 'var(--catc)', o: md[0], v: md[1] });
+    const px = cd.px?.rr?.[win]; if (px && cd.px.id !== f.id) ser.push({ name: 'Index fund: ' + cd.px.n, color: 'var(--s2)', o: px[0], v: px[1] });
+    D.querySelector('#rleg').innerHTML = ser.length > 1 ? legend(ser.map(s => [s.name, s.color])) : '';
+    lineChart(D.querySelector('#rchart'), { series: ser, zero: true, clip: fr ? [fr[0], fr[0] + fr[1].length - 1] : null, fmt: (v, t) => t ? pct(v) : Math.round(v) + '%', label: `${win}-year rolling returns` });
+    const p = det.pc?.[win];
+    const above = fromPct(p, thr);
+    D.querySelector('#rstats').innerHTML = p ? [['Worst', pct(p[0])], ['Bad case (5%)', pct(p[1])], ['Typical', pct(p[10])], ['Good case (95%)', pct(p[19])], ['Best', pct(p[20])], [`Periods above ${thr}% a year`, pct(above, 0)]]
+      .map(([k, v]) => `<div><span>${k}</span><b class="num">${v}</b></div>`).join('') : '<div class="warn">Not enough history for this holding period.</div>';
+    D.querySelector('#thrv').textContent = thr + '%';
+    drawLoss();
+  };
+  const drawLoss = () => {
+    const lo = det.lo || {}, rows = [1, 2, 3, 5, 7, 10].filter(w => fin(lo[w]));
+    D.querySelector('#loss').innerHTML = rows.length ? `<div class="hb">${rows.map(w => {
+      const below = det.pc?.[w] ? 100 - fromPct(det.pc[w], thr) : null;
+      return `<span class="l">${w} year${w > 1 ? 's' : ''}</span><div class="bar" title="${pct(lo[w], 0)} of ${w}-year holdings lost money"><i style="width:${Math.max(lo[w], .4)}%;--c:var(--fall)"></i></div><span class="v">${pct(lo[w], 0)}</span>
+        <span></span><span class="l" style="font-size:13px">${fin(below) ? `${pct(below, 0)} earned less than ${thr}% a year` : ''}</span><span></span>`;
+    }).join('')}</div>` : '<div class="warn">Not enough history yet.</div>';
+  };
+  D.querySelector('#rwin').addEventListener('click', e => { const b = e.target.closest('button[data-w]'); if (!b || b.disabled) return; win = +b.dataset.w; D.querySelectorAll('#rwin button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawRolling(); });
+  D.querySelector('#thr').addEventListener('input', e => { thr = +e.target.value; drawRolling(); });
+  if (!det.pc?.[win]) { const w = [1, 3, 5, 7, 10].find(w => det.pc?.[w]); if (w) { win = w; D.querySelectorAll('#rwin button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.w === w)); } }
+  drawRolling();
+
+  lineChart(D.querySelector('#ddchart'), { series: det.dd ? [{ name: 'Below previous high', color: 'var(--fall)', o: det.m0, v: det.dd }] : [], area: true, fmt: (v, t) => t ? pct(v) : Math.round(v) + '%', label: 'Fall from previous high' });
+
+  const ev = det.ev || [];
+  D.querySelector('#crash').innerHTML = ev.length ? ev.map(([k, fall, rd]) => {
+    const e = S.meta.events[k], cm = cd.em?.[k];
+    const mx = Math.max(Math.abs(fall), Math.abs(cm || 0), 1);
+    const scale = v => Math.min(100, Math.abs(v) / Math.max(mx, 30) * 100);
+    return `<div class="ev"><span><b>${esc(e.n)}</b><br><small style="color:var(--muted)">${dmy(e.s)} to ${dmy(e.e)}</small></span>
+      <div class="bars"><div style="--c:var(--s1);width:${scale(fall)}%" title="This fund ${pct(fall)}"></div>${fin(cm) ? `<div style="--c:var(--catc);width:${scale(cm)}%" title="Category typical ${pct(cm)}"></div>` : ''}</div>
+      <span class="vals"><b>${pct(fall)}</b> vs ${pct(cm)}<br><small style="color:var(--muted)">back to high: ${rd < 0 ? 'not yet' : dur(rd)}</small></span></div>`;
+  }).join('') : '<div class="warn">This fund did not exist during the market episodes tracked here.</div>';
+
+  let sy = det.sip?.[5] ? 5 : [3, 10].find(y => det.sip?.[y]);
+  const drawSip = () => {
+    const box = D.querySelector('#sip');
+    const s = det.sip?.[sy];
+    if (!s) { box.innerHTML = '<div class="warn">Not enough history for a SIP of this length.</div>'; return; }
+    const A = Math.max(0, +D.querySelector('#sipamt').value || 0), n = sy * 12;
+    const fv = R => { const rm = (1 + R / 100) ** (1 / 12) - 1; let t = 0; for (let k = 1; k <= n; k++) t += (1 + rm) ** k; return A * t; };
+    const p = s[2];
+    const all = Object.values(det.sip).flatMap(x => [x[2][0], x[2][20]]);
+    const lo = Math.min(0, ...all), hi = Math.max(...all), X = v => (v - lo) / (hi - lo || 1) * 100;
+    box.innerHTML = `<div class="rng" role="img" aria-label="SIP XIRR from ${pct(p[0])} to ${pct(p[20])}, typical ${pct(p[10])}">
+        <div class="track"></div><div class="w" style="left:${X(p[0])}%;width:${X(p[20]) - X(p[0])}%"></div>
+        <div class="m" style="left:${X(p[5])}%;width:${Math.max(1, X(p[15]) - X(p[5]))}%"></div>
+        ${lo < 0 ? `<div class="z" style="left:${X(0)}%"></div>` : ''}<div class="md" style="left:${X(p[10])}%"></div>
+        <small style="left:${X(p[0])}%">${pct(p[0])}</small><small style="left:${X(p[20])}%">${pct(p[20])}</small></div>
+      <p class="lede" style="margin:4px 0 0">Out of <b>${s[1]}</b> possible start months, <b>${pct(s[0], 0)}</b> ended below the amount invested. Middle half of results: ${pct(p[5])} to ${pct(p[15])} a year.</p>
+      <div class="sipgrid">
+        <div><span>Invested</span><b>${inr(A * n)}</b><small>${inr(A)} × ${n} months</small></div>
+        <div><span>Worst start</span><b>${inr(fv(p[0]))}</b><small>XIRR ${pct(p[0])}</small></div>
+        <div><span>Typical start</span><b>${inr(fv(p[10]))}</b><small>XIRR ${pct(p[10])}</small></div>
+        <div><span>Best start</span><b>${inr(fv(p[20]))}</b><small>XIRR ${pct(p[20])}</small></div>
+      </div>`;
+  };
+  D.querySelector('#swin').addEventListener('click', e => { const b = e.target.closest('button[data-y]'); if (!b || b.disabled) return; sy = +b.dataset.y; D.querySelectorAll('#swin button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawSip(); });
+  D.querySelector('#sipamt').addEventListener('input', drawSip);
+  D.querySelectorAll('#swin button').forEach(x => x.setAttribute('aria-pressed', +x.dataset.y === sy));
+  drawSip();
+
+  let scn = 10;
+  const drawMoney = () => {
+    const box = D.querySelector('#money'), y = +D.querySelector('#myrs').value;
+    const p = det.pc?.[y];
+    if (!p) { box.innerHTML = '<div class="warn">Not enough history to estimate this.</div>'; return; }
+    const amt = Math.max(0, +D.querySelector('#mamt').value || 0), slab = +D.querySelector('#mslab').value / 100, infl = +D.querySelector('#minf').value / 100;
+    const r = p[scn] / 100, val = y === 1 ? amt * (1 + r) : amt * (1 + r) ** y, gain = val - amt;
+    let tax = 0, rule;
+    if (gain > 0) {
+      if (f.k === 'e') { tax = Math.max(0, gain - 125000) * .125; rule = 'equity-oriented: 12.5% on gains above ₹1.25 lakh'; }
+      else if (f.k === 'd') { tax = gain * slab; rule = 'debt-oriented: taxed at your slab'; }
+      else if (y >= 2) { tax = gain * .125; rule = 'other fund held over 24 months: 12.5%'; }
+      else { tax = gain * slab; rule = 'other fund under 24 months: your slab'; }
+    } else rule = 'no gain, so no tax';
+    const post = val - tax, real = post / (1 + infl) ** y;
+    const cg = v => (((v / amt) ** (1 / y)) - 1) * 100;
+    box.innerHTML = `<div class="sipgrid">
+      <div><span>Value before tax</span><b>${inr(val)}</b><small>${pct(p[scn])} a year</small></div>
+      <div><span>Tax</span><b>${inr(tax)}</b><small>${rule}</small></div>
+      <div><span>In hand after tax</span><b>${inr(post)}</b><small>${pct(cg(post))} a year</small></div>
+      <div><span>In today's money</span><b>${inr(real)}</b><small>${pct(cg(real))} a year after ${(infl * 100).toFixed(1)}% inflation</small></div></div>
+      <p class="src">Assumes the whole ₹1.25 lakh exemption is free for this gain, and leaves out surcharge and cess. Check the scheme's tax treatment in its documents.</p>`;
+  };
+  ['#mamt', '#myrs', '#mslab', '#minf'].forEach(s => D.querySelector(s).addEventListener('input', drawMoney));
+  D.querySelector('#mscn').addEventListener('click', e => { const b = e.target.closest('button[data-s]'); if (!b) return; scn = +b.dataset.s; D.querySelectorAll('#mscn button').forEach(x => x.setAttribute('aria-pressed', x === b)); drawMoney(); });
+  drawMoney();
+
+  const yr = det.yr || [];
+  D.querySelector('#yrs').innerHTML = yr.length ? yr.slice(-15).map(([y, r, q]) => `<div class="cell ${q ? 'q' + q : 'na'}" title="${y}: ${pct(r)}${cd.ym?.[y] !== undefined ? ', category typical ' + pct(cd.ym[y]) : ''}"><small>${yLab(y)}</small>${pct(r, 0)}</div>`).join('') : '<div class="warn">Not enough history for calendar-year returns.</div>';
+
+  if (det.nav) {
+    const base = det.nav.find(fin);
+    lineChart(D.querySelector('#navchart'), { series: [{ name: 'Value of ₹10,000', color: 'var(--s1)', o: det.m0, v: det.nav.map(v => fin(v) ? v / base * 10000 : null) }], fmt: (v, t) => t ? inr(v) : (v >= 100000 ? '₹' + (v / 100000).toFixed(v >= 1e6 ? 0 : 1) + 'L' : '₹' + Math.round(v / 1000) + 'k'), label: 'Growth of 10,000 rupees' });
+  }
+}
+
+/* ------------------------------------------------------------------ compare */
+function renderTray() {
+  const t = $('#tray');
+  t.hidden = !S.compare.length;
+  if (!S.compare.length) return;
+  const names = S.compare.map(id => S.byId.get(id)?.n).join(' · ');
+  t.innerHTML = `<span class="names">${S.compare.length} of 4 picked: ${esc(names)}</span><button class="btn" id="goCmp">Compare</button><button class="clr" id="clrCmp">Clear</button>`;
+}
+function toggleCompare(id) {
+  id = +id;
+  const i = S.compare.indexOf(id);
+  if (i >= 0) S.compare.splice(i, 1);
+  else { if (S.compare.length >= 4) S.compare.shift(); S.compare.push(id); }
+  document.querySelectorAll(`[data-cmp="${id}"]`).forEach(b => {
+    const on = S.compare.includes(id); b.setAttribute('aria-pressed', on);
+    if (b.classList.contains('add')) b.textContent = on ? '✓' : '+'; else b.textContent = on ? 'In compare' : 'Add to compare';
+  });
+  document.querySelectorAll('.add').forEach(b => { const on = S.compare.includes(+b.dataset.cmp); b.setAttribute('aria-pressed', on); b.textContent = on ? '✓' : '+'; });
+  renderTray();
+}
+async function showCompare() {
+  const fs = S.compare.map(id => S.byId.get(id)).filter(Boolean);
+  if (!fs.length) return;
+  history.replaceState(null, '', '#compare');
+  const cols = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)'];
+  const dets = await Promise.all(fs.map(f => catData(f.c, f.p).then(d => d.f[f.id] || {})));
+  const rowsDef = [
+    ['Category', f => esc(catOf(f).n)],
+    ['Typical rolling return', f => `${pct(f.rh)} <small>(${f.H}Y)</small>`], ['Typical rolling 1Y / 3Y / 5Y', f => `${pct(f.rr1)} / ${pct(f.rr3)} / ${pct(f.rr5)}`],
+    ['Beat category', f => pct(f.bt, 0)], ['Chance of loss', f => `${pct(f.ls, 0)} <small>(${f.H}Y)</small>`],
+    ['Worst fall, 5Y', f => pct(f.dd)], ['Recovery', f => dur(f.rc, f.nr)],
+    ['Sharpe / Sortino (3Y)', f => `${f2(f.sh3)} / ${f2(f.so3)}`], ['Standard deviation (3Y)', f => pct(f.sd3)],
+    ['Beta / Alpha (3Y)', f => `${f2(f.be3)} / ${pct(f.al3)}`], ['Up / down capture (3Y)', f => `${pct(f.uc3, 0)} / ${pct(f.dc3, 0)}`],
+    ['Holdings / top 10 share', f => fin(f.nh) ? `${f.nh} / ${pct(f.t10, 0)}` : '–'], ['Large / mid / small cap', f => fin(f.lcp) ? `${pct(f.lcp, 0)} / ${pct(f.mcp, 0)} / ${pct(f.scp, 0)}` : '–'],
+    ['1Y / 3Y / 5Y', f => `${pct(f.r1)} / ${pct(f.r3)} / ${pct(f.r5)}`], ['Expense ratio', f => fin(f.ter) ? f.ter.toFixed(2) + '%' : '–'], ['Fund size', f => crore(f.aum)], ['NAV data since', f => dmy(f.st)]
+  ];
+  openDrawer(`<div class="dtop"><div><h2 id="dTitle">Compare ${fs.length} fund${fs.length > 1 ? 's' : ''}</h2><p>Rolling returns on the same holding period, side by side</p></div><button class="x" aria-label="Close">×</button></div>
+   <div class="dbody"><section class="sec"><div class="ctl"><div class="seg" role="group" aria-label="Holding period" id="cwin">${[1, 3, 5, 7, 10].map(w => `<button data-w="${w}" aria-pressed="${w === 3}">${w}Y</button>`).join('')}</div></div>
+   <div id="cleg"></div><div class="fig" id="cchart"></div></section>
+   <section class="sec"><div class="tablewrap"><table class="mtable"><thead><tr><th></th>${fs.map((f, k) => `<th><span class="key" style="--c:${cols[k]}"></span> ${esc(f.n)}<br><small style="font-weight:600">${esc(S.meta.amcs[f.a])}</small></th>`).join('')}</tr></thead>
+   <tbody>${rowsDef.map(([l, fn]) => `<tr><td class="muted">${l}</td>${fs.map(f => `<td class="num">${fn(f)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+   <p class="src">Funds from different categories carry different risks; compare like with like. Past performance may or may not be sustained in future. This comparison is for educational purposes only and is not investment advice.</p></section>
+   ${fs.filter(f => f.pm).length >= 2 ? `<section class="sec"><h3>Portfolio overlap</h3><p class="lede">How much of each pair of funds sits in the same holdings, from their latest portfolios. Overlap adds up the smaller weight of every holding the two share.</p><div id="ovl"><div class="empty">Loading portfolios…</div></div></section>` : ''}</div>`, 'Compare funds');
+  const D = $('#drawer');
+  const draw = w => {
+    const ser = fs.map((f, k) => { const r = dets[k].rr?.[w]; return r ? { name: f.n, color: cols[k], o: r[0], v: r[1] } : null; }).filter(Boolean);
+    D.querySelector('#cleg').innerHTML = legend(fs.map((f, k) => [f.n + (dets[k].rr?.[w] ? '' : ' (not enough history)'), cols[k]]));
+    lineChart(D.querySelector('#cchart'), { series: ser, zero: true, fmt: (v, t) => t ? pct(v) : Math.round(v) + '%', label: `${w}-year rolling returns` });
+  };
+  D.querySelector('#cwin').addEventListener('click', e => { const b = e.target.closest('button[data-w]'); if (!b) return; D.querySelectorAll('#cwin button').forEach(x => x.setAttribute('aria-pressed', x === b)); draw(+b.dataset.w); });
+  draw(3);
+  const withP = fs.filter(f => f.pm);
+  if (withP.length >= 2) {
+    const ps = await Promise.all(withP.map(f => portOf(f).catch(() => null)));
+    const box = D.querySelector('#ovl'); if (!box) return;
+    const maps = ps.map(P => { const m = new Map(); for (const h of (P?.h || [])) { const k = h[0] || h[1]; if (h[4] === 'cash' || h[4] === 'arb') continue; m.set(k, { n: h[1], w: (m.get(k)?.w || 0) + h[2] }); } return m; });
+    const pairs = [];
+    for (let i = 0; i < withP.length; i++) for (let j = i + 1; j < withP.length; j++) {
+      let ov = 0; const common = [];
+      for (const [k, a] of maps[i]) { const b = maps[j].get(k); if (b) { const w = Math.min(a.w, b.w); ov += w; common.push([a.n, a.w, b.w, w]); } }
+      common.sort((x, y) => y[3] - x[3]);
+      pairs.push({ i, j, ov, common });
+    }
+    const pm = [...new Set(ps.map(P => P?.month).filter(Boolean))];
+    box.innerHTML = `<div class="tablewrap"><table class="mtable ovl"><thead><tr><th>Pair</th><th class="n">Overlap</th><th class="n">Holdings in common</th><th>Biggest shared holdings</th></tr></thead><tbody>${pairs.map(p => `<tr><td>${esc(withP[p.i].n)}<br><small class="muted">and</small> ${esc(withP[p.j].n)}</td><td class="n">${pct(p.ov, 0)}</td><td class="n">${p.common.length}</td><td><small>${p.common.slice(0, 5).map(c => esc(c[0]) + ' (' + pct(c[1], 1) + ' / ' + pct(c[2], 1) + ')').join(', ') || 'None'}</small></td></tr>`).join('')}</tbody></table></div>
+      <p class="src">Portfolios as on ${pm.map(dmy).join(', ')}. ${fs.length > withP.length ? 'Funds without a portfolio file yet are left out. ' : ''}Weights in brackets are each fund's share in that holding. Cash is left out.</p>`;
+  }
+}
+
+/* ------------------------------------------------------------------ fund house view */
+function showAmc(ai) {
+  const amcs = S.meta.amcs;
+  if (ai === undefined || ai === null) ai = S.amcs.size === 1 ? [...S.amcs][0] : 0;
+  const mine = S.funds.filter(f => f.a === ai && inView(f));
+  const byCat = new Map();
+  for (const f of mine) { if (!byCat.has(f.c)) byCat.set(f.c, []); byCat.get(f.c).push(f); }
+  const blocks = S.meta.cats.filter(c => byCat.has(c.i)).map(c => {
+    const all = S.ranks.get(c.i) || [];
+    const rows = byCat.get(c.i).sort((a, b) => a._rank - b._rank).map(f => `<tr data-id="${f.id}" tabindex="0"><td class="fund"><b>${esc(f.n)}</b><small>${esc(c.g)} · ${esc(c.n)}</small></td><td class="n">${f._ok ? `${f._rank} of ${all.length}` : '<span class="flag">Too new</span>'}</td><td class="n">${pct(f.rh)} <small class="muted">${c.H}Y</small></td><td class="n">${pct(f.ls, 0)}</td><td class="n">${pct(f.dd)}</td><td class="n">${fin(f.ter) ? f.ter.toFixed(2) + '%' : '–'}</td></tr>`).join('');
+    return rows;
+  }).join('');
+  const ranked = mine.filter(f => f._ok);
+  const topHalf = ranked.filter(f => f._rank <= Math.ceil((S.ranks.get(f.c) || []).length / 2)).length;
+  openDrawer(`<div class="dtop"><div><h2 id="dTitle">Fund house view</h2><p>Every scheme of one AMC, with its place in its own category</p></div><button class="x" aria-label="Close">×</button></div>
+    <div class="dbody"><div class="ctl" style="margin-top:14px"><label>Fund house <select id="amcSel" style="width:auto;max-width:70vw">${amcs.map((a, i) => `<option value="${i}" ${i === ai ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select></label></div>
+    <div class="tiles"><div class="tile"><span>Schemes (regular plan)</span><b>${mine.length}</b></div><div class="tile"><span>Categories covered</span><b>${byCat.size}</b></div><div class="tile"><span>In top half of their category</span><b>${ranked.length ? topHalf + ' of ' + ranked.length : '–'}</b><small>by ${PRESETS[S.preset].label.toLowerCase()}</small></div></div>
+    <div class="tablewrap" style="margin-top:14px"><table><thead><tr><th class="fund">Scheme</th><th class="n">Rank in category</th><th class="n">Typical rolling</th><th class="n">Chance of loss</th><th class="n">Worst fall (5Y)</th><th class="n">Expense ratio</th></tr></thead><tbody>${blocks}</tbody></table></div>
+    <p class="src">Ranks use the measure chosen on the main page. They describe the past, not the future. For educational purposes only; not investment advice.</p></div>`, 'Fund house view');
+  $('#amcSel').addEventListener('change', e => showAmc(+e.target.value));
+}
+
+/* ------------------------------------------------------------------ AMC filter popover */
+function showAmcPop() {
+  const pop = $('#pop'), btn = $('#amcBtn');
+  if (!pop.hidden) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); return; }
+  const r = btn.getBoundingClientRect();
+  pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+  pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, document.documentElement.clientWidth - 370)) + 'px';
+  const list = () => S.meta.amcs.map((a, i) => ({ a, i })).filter(x => x.a.toLowerCase().includes(($('#amcQ')?.value || '').toLowerCase()));
+  pop.innerHTML = `<input type="search" id="amcQ" placeholder="Find a fund house" aria-label="Find a fund house"><div class="list" id="amcList"></div><div class="acts"><button class="btn" id="amcAll">Show all</button><button class="btn primary" id="amcDone">Done</button></div>`;
+  const draw = () => { $('#amcList').innerHTML = list().map(({ a, i }) => `<label><input type="checkbox" value="${i}" ${S.amcs.has(i) ? 'checked' : ''}>${esc(a)}</label>`).join(''); };
+  draw();
+  pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
+  $('#amcQ').addEventListener('input', draw);
+  $('#amcList').addEventListener('change', e => { const i = +e.target.value; e.target.checked ? S.amcs.add(i) : S.amcs.delete(i); store.set('amcs', [...S.amcs]); renderTop(); renderTabs(); renderCards(); });
+  $('#amcAll').addEventListener('click', () => { S.amcs.clear(); store.set('amcs', []); draw(); renderTop(); renderTabs(); renderCards(); });
+  $('#amcDone').addEventListener('click', () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); btn.focus(); });
+  $('#amcQ').focus();
+}
+
+/* ------------------------------------------------------------------ search */
+function search(q) {
+  const box = $('#results');
+  q = q.trim().toLowerCase();
+  if (q.length < 2) { box.hidden = true; return; }
+  const words = q.split(/\s+/);
+  const hits = S.funds.filter(f => { const t = (f.n + ' ' + S.meta.amcs[f.a] + ' ' + catOf(f).n).toLowerCase(); return words.every(w => t.includes(w)); })
+    .sort((a, b) => (inView(b) - inView(a)) || a.n.localeCompare(b.n)).slice(0, 14);
+  box.innerHTML = hits.length ? hits.map(f => `<button data-id="${f.id}">${esc(f.n)}<small>${esc(catOf(f).n)} · ${esc(S.meta.amcs[f.a])}</small></button>`).join('') : '<div class="empty">No fund matches.</div>';
+  box.hidden = false;
+}
+
+/* ------------------------------------------------------------------ events */
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (!$('#pop').hidden && !t.closest('#pop') && !t.closest('#amcBtn')) { $('#pop').hidden = true; $('#amcBtn').setAttribute('aria-expanded', 'false'); }
+  if (!t.closest('.search')) $('#results').hidden = true;
+  let b;
+  if ((b = t.closest('[data-cmp]'))) { e.stopPropagation(); toggleCompare(b.dataset.cmp); return; }
+  if ((b = t.closest('[data-preset]'))) { S.preset = b.dataset.preset; store.set('preset', S.preset); renderAll(); return; }
+  if ((b = t.closest('[data-group]'))) { S.group = b.dataset.group; S.cat = null; history.replaceState(null, '', '#' + S.group.replace(/[^A-Za-z0-9-]/g, '-')); renderTabs(); renderCards(); return; }
+  if ((b = t.closest('[data-view]'))) { S.view = b.dataset.view; store.set('view', S.view); document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed', x.dataset.view === S.view)); renderTabs(); renderCards(); return; }
+  if ((b = t.closest('[data-open]'))) { const i = +b.dataset.open; S.open.has(i) ? S.open.delete(i) : S.open.add(i); renderCards(); document.querySelector(`[data-card="${i}"]`)?.scrollIntoView({ block: 'nearest' }); return; }
+  if ((b = t.closest('[data-mode]'))) { S.mode[+b.dataset.cat] = b.dataset.mode; renderCards(); return; }
+  if ((b = t.closest('[data-sort]'))) { const i = +b.dataset.cat, k = b.dataset.sort, cur = S.sort[i]; const lowGood = DIR[k] < 0; S.sort[i] = cur && cur.k === k ? { k, d: -cur.d } : { k, d: lowGood ? 1 : -1 }; renderCards(); return; }
+  if (t.closest('#amcBtn')) { showAmcPop(); return; }
+  if (t.closest('#amcView')) { showAmc(); return; }
+  if (t.closest('#goCmp')) { showCompare(); return; }
+  if (t.closest('#clrCmp')) { S.compare = []; document.querySelectorAll('.add').forEach(x => { x.setAttribute('aria-pressed', 'false'); x.textContent = '+'; }); renderTray(); return; }
+  if (t.closest('.x') || t === $('#scrim')) { closeDrawer(); return; }
+  if ((b = t.closest('#results [data-id], tr[data-id]'))) { $('#results').hidden = true; showFund(b.dataset.id); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (!$('#drawer').hidden) closeDrawer(); $('#pop').hidden = true; $('#results').hidden = true; }
+  if (e.key === 'Enter' && e.target.matches('tr[data-id]')) showFund(e.target.dataset.id);
+});
+$('#ftype').addEventListener('change', e => {
+  const [k, v] = e.target.value.split('|');
+  if (k === 'g') { S.group = v; S.cat = null; history.replaceState(null, '', '#' + v.replace(/[^A-Za-z0-9-]/g, '-')); }
+  else { const c = S.meta.cats.find(x => x.i === +v); S.cat = c.i; S.group = c.g; S.open.delete(c.i); history.replaceState(null, '', '#' + c.id); }
+  renderTabs(); renderCards();
+  document.querySelector('#tabs').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+$('#q').addEventListener('input', e => search(e.target.value));
+$('#q').addEventListener('focus', e => search(e.target.value));
+$('#young').addEventListener('change', e => { S.young = e.target.checked; store.set('young', S.young); renderAll(); });
+$('#weights').addEventListener('input', e => { const k = e.target.dataset.w; if (!k) return; S.wts[k] = +e.target.value; $('#wv' + k).textContent = e.target.value; store.set('wts', S.wts); rankAll(); renderCards(); });
+window.addEventListener('hashchange', () => { const h = location.hash; if (h.startsWith('#fund-')) showFund(h.slice(6)); });
+
+/* ------------------------------------------------------------------ start */
+{ const cur = document.querySelector('.nav [aria-current]'), ul = cur?.closest('ul'); if (ul && cur.offsetLeft + cur.offsetWidth > ul.clientWidth) ul.scrollLeft = cur.offsetLeft - 20; }
+(async () => {
+  try {
+    const data = await getJSON('data/funds.json');
+    S.meta = data.meta; S.funds = data.funds;
+    for (const f of S.funds) S.byId.set(f.id, f);
+    S.amcs = new Set([...S.amcs].filter(i => i < S.meta.amcs.length));
+    if (!PRESETS[S.preset]) S.preset = 'cons';
+    const h = location.hash.slice(1);
+    const g = S.meta.cats.map(c => c.g).find(x => x.replace(/[^A-Za-z0-9-]/g, '-') === h);
+    if (g) S.group = g;
+    const hc = S.meta.cats.find(c => c.id === h);
+    if (hc) { S.cat = hc.i; S.group = hc.g; }
+    renderAll();
+    if (h.startsWith('fund-')) showFund(h.slice(5));
+  } catch (err) {
+    $('#cards').innerHTML = `<div class="empty">Could not load the fund data (${esc(err.message)}). Please refresh in a minute.</div>`;
+  }
+})();
+}
+</script>
+</body>
+</html>

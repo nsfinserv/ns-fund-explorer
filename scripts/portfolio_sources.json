@@ -1,0 +1,339 @@
+{
+ "_about": "Where each fund house publishes its monthly portfolio. Found on AMFI's Portfolio Disclosure page (amfiindia.com/online-center/portfolio-disclosure). 'include' and 'exclude' are optional extra regex filters on the file link; 'checked' means the robot's method was confirmed by hand on that date.",
+ "exclude_default": "fortnight|mid[- ]?month|half[- ]?year|semi[- ]?annual|factsheet|fact[- ]sheet|fundamentals|risk[- ]?parameter|riskometer|risk[- ]?o[- ]?meter|annual[- ]report|\\bter\\b|scheme[- ]performance|\\bsid\\b|\\bkim\\b|\\bsai\\b|notice|addendum|overlap|stress[- ]test|scheme[- ]information|dividend[- ]history|idcw[- ]history|financials|brsr|voting|commission|unclaimed|nav[- ]history|debt[- ]schemes?[- ]portfolio",
+ "amcs": [
+  {
+   "mf_id": "62",
+   "name": "360 ONE Mutual Fund",
+   "slug": "360-one",
+   "url": "https://www.360.one/asset/mutual-funds/downloads/"
+  },
+  {
+   "mf_id": "85",
+   "name": "Abakkus Mutual Fund",
+   "slug": "abakkus",
+   "url": "https://www.abakkusmf.com/statutory-disclosures.html"
+  },
+  {
+   "mf_id": "3",
+   "name": "Aditya Birla Sun Life Mutual Fund",
+   "slug": "aditya-birla-sun-life",
+   "url": "https://mutualfund.adityabirlacapital.com/forms-and-downloads/portfolio",
+   "checked": "2026-11-22 (anchor)"
+  },
+  {
+   "mf_id": "86",
+   "name": "AlphaGrep Mutual Fund",
+   "slug": "alphagrep",
+   "url": "https://www.alphagrepmf.ai/disclosures"
+  },
+  {
+   "mf_id": "80",
+   "name": "Angel One Mutual Fund",
+   "slug": "angel-one",
+   "url": "https://www.angelonemf.com/downloads"
+  },
+  {
+   "mf_id": "87",
+   "name": "ASK MUTUAL FUND",
+   "slug": "ask",
+   "url": "https://www.askmutualfund.com/#/downloads"
+  },
+  {
+   "mf_id": "53",
+   "name": "Axis Mutual Fund",
+   "slug": "axis",
+   "url": "https://www.axismf.com/statutory-disclosures"
+  },
+  {
+   "mf_id": "75",
+   "name": "Bajaj Finserv Mutual Fund",
+   "slug": "bajaj-finserv",
+   "url": "https://www.bajajamc.com/downloads?statutory-disclosures="
+  },
+  {
+   "mf_id": "48",
+   "name": "Bandhan Mutual Fund",
+   "slug": "bandhan",
+   "url": "https://bandhanmutual.com/downloads/disclosures"
+  },
+  {
+   "mf_id": "46",
+   "name": "Bank of India Mutual Fund",
+   "slug": "bank-of-india",
+   "url": "https://www.boimf.in/investor-corner#t2"
+  },
+  {
+   "mf_id": "4",
+   "name": "Baroda BNP Paribas Mutual Fund",
+   "slug": "baroda-bnp-paribas",
+   "url": "https://www.barodabnpparibasmf.in/downloads/monthly-portfolio-scheme"
+  },
+  {
+   "mf_id": "32",
+   "name": "Canara Robeco Mutual Fund",
+   "slug": "canara-robeco",
+   "url": "https://www.canararobeco.com/documents/statutory-disclosures/scheme-dashboard/scheme-monthly-portfolio/"
+  },
+  {
+   "mf_id": "81",
+   "name": "Capitalmind Mutual Fund",
+   "slug": "capitalmind",
+   "url": "https://capitalmindmf.com/statutory-disclosures.html"
+  },
+  {
+   "mf_id": "91",
+   "name": "Carnelian Mutual Fund",
+   "slug": "carnelian",
+   "url": "https://carnelianmf.com/statutory-disclosures"
+  },
+  {
+   "mf_id": "84",
+   "name": "Choice Mutual Fund",
+   "slug": "choice",
+   "url": "https://choicemf.com/disclosures/monthly-portfolio"
+  },
+  {
+   "mf_id": "6",
+   "name": "DSP Mutual Fund",
+   "slug": "dsp",
+   "url": "https://www.dspim.com/about-us/mandatory-disclosure/portfolio-disclosures"
+  },
+  {
+   "mf_id": "47",
+   "name": "Edelweiss Mutual Fund",
+   "slug": "edelweiss",
+   "url": "https://www.edelweissmf.com/statutory#Portfolio-of-Schemes"
+  },
+  {
+   "mf_id": "27",
+   "name": "Franklin Templeton Mutual Fund",
+   "slug": "franklin-templeton",
+   "url": "https://www.franklintempletonindia.com/investor/reports?firstFilter-12"
+  },
+  {
+   "mf_id": "63",
+   "name": "Groww Mutual Fund",
+   "slug": "groww",
+   "url": "https://growwmf.in/statutory-disclosure/portfolio"
+  },
+  {
+   "mf_id": "9",
+   "name": "HDFC Mutual Fund",
+   "slug": "hdfc",
+   "url": "https://www.hdfcfund.com/statutory-disclosure/portfolio/monthly-portfolio",
+   "checked": "2026-11-22 (anchor)"
+  },
+  {
+   "mf_id": "76",
+   "name": "Helios Mutual Fund",
+   "slug": "helios",
+   "url": "https://www.heliosmf.in/portfolio-disclosure/"
+  },
+  {
+   "mf_id": "37",
+   "name": "HSBC Mutual Fund",
+   "slug": "hsbc",
+   "url": "https://www.assetmanagement.hsbc.co.in/en/mutual-funds/investor-resources/information-library"
+  },
+  {
+   "mf_id": "20",
+   "name": "ICICI Prudential Mutual Fund",
+   "slug": "icici-prudential",
+   "url": "https://www.icicipruamc.com/news-and-media/downloads?currentTabFilter=Disclosures&&subCatTabFilter=MonthlyPortfolioDisclosures",
+   "checked": "2026-11-22 (click)"
+  },
+  {
+   "mf_id": "42",
+   "name": "Invesco Mutual Fund",
+   "slug": "invesco",
+   "url": "https://invescomutualfund.com/literature-and-form?tab=Complete"
+  },
+  {
+   "mf_id": "70",
+   "name": "ITI Mutual Fund",
+   "slug": "iti",
+   "url": "https://www.itiamc.com/statuory-disclosure"
+  },
+  {
+   "mf_id": "82",
+   "name": "Jio BlackRock Mutual Fund",
+   "slug": "jio-blackrock",
+   "url": "https://www.jioblackrockamc.com/statutory-disclosure/disclosures/monthly-portfolio-disclosure"
+  },
+  {
+   "mf_id": "16",
+   "name": "JM Financial Mutual Fund",
+   "slug": "jm-financial",
+   "url": "https://www.jmfinancialmf.com/downloads/Portfolio-Disclosure"
+  },
+  {
+   "mf_id": "17",
+   "name": "Kotak Mahindra Mutual Fund",
+   "slug": "kotak-mahindra",
+   "url": "https://www.kotakmf.com/Information/forms-and-downloads",
+   "note": "The forms page groups files by type; use the inbox folder if the robot cannot get it."
+  },
+  {
+   "mf_id": "18",
+   "name": "LIC Mutual Fund",
+   "slug": "lic",
+   "url": "https://www.licmf.com/downloads/monthly-portfolio"
+  },
+  {
+   "mf_id": "69",
+   "name": "Mahindra Manulife Mutual Fund",
+   "slug": "mahindra-manulife",
+   "url": "https://www.mahindramanulife.com/downloads#mandatory-disclosures"
+  },
+  {
+   "mf_id": "45",
+   "name": "Mirae Asset Mutual Fund",
+   "slug": "mirae-asset",
+   "url": "https://www.miraeassetmf.co.in/downloads/portfolio"
+  },
+  {
+   "mf_id": "89",
+   "name": "Monarch Mutual Fund",
+   "slug": "monarch",
+   "url": "https://www.monarchamc.in/forms-downloads/portfolio-holdings/monthly"
+  },
+  {
+   "mf_id": "55",
+   "name": "Motilal Oswal Mutual Fund",
+   "slug": "motilal-oswal",
+   "url": "https://www.motilaloswalmf.com/downloads/scheme-portfolio-details"
+  },
+  {
+   "mf_id": "54",
+   "name": "Navi Mutual Fund",
+   "slug": "navi",
+   "url": "https://navi.com/mutual-fund/downloads/portfolio"
+  },
+  {
+   "mf_id": "21",
+   "name": "Nippon India Mutual Fund",
+   "slug": "nippon-india",
+   "url": "https://mf.nipponindiaim.com/investor-service/downloads/factsheet-portfolio-and-other-disclosures",
+   "checked": "2026-11-22 (anchor)"
+  },
+  {
+   "mf_id": "73",
+   "name": "NJ Mutual Fund",
+   "slug": "nj",
+   "url": "https://downloads.njmutualfund.com/njmf_download.php?nme=127"
+  },
+  {
+   "mf_id": "78",
+   "name": "Old Bridge Mutual Fund",
+   "slug": "old-bridge",
+   "url": "https://oldbridgemf.com/statutory-disclosures.html"
+  },
+  {
+   "mf_id": "58",
+   "name": "PGIM India Mutual Fund",
+   "slug": "pgim-india",
+   "url": "https://www.pgimindia.com/mutual-funds/disclosures/Portfolios/Monthly-Portfolio"
+  },
+  {
+   "mf_id": "64",
+   "name": "PPFAS Mutual Fund",
+   "slug": "ppfas",
+   "url": "https://amc.ppfas.com/downloads/portfolio-disclosure/",
+   "checked": "2026-11-22 (anchor)",
+   "note": "Site uses a Cloudflare check; the robot may be blocked. Use the inbox folder if so."
+  },
+  {
+   "mf_id": "13",
+   "name": "quant Mutual Fund",
+   "slug": "quant",
+   "url": "https://quantmutual.com/statutory-disclosures"
+  },
+  {
+   "mf_id": "41",
+   "name": "Quantum Mutual Fund",
+   "slug": "quantum",
+   "url": "https://www.quantumamc.com/portfolio/combined/-1/1/0/0"
+  },
+  {
+   "mf_id": "74",
+   "name": "Samco Mutual Fund",
+   "slug": "samco",
+   "url": "https://www.samcomf.com/StatutoryDisclosure"
+  },
+  {
+   "mf_id": "22",
+   "name": "SBI Mutual Fund",
+   "slug": "sbi",
+   "url": "https://www.sbimf.com/portfolios",
+   "checked": "2026-11-22 (anchor)"
+  },
+  {
+   "mf_id": "67",
+   "name": "Shriram Mutual Fund",
+   "slug": "shriram",
+   "url": "https://www.shriramamc.in/investor-statutory-disclosures"
+  },
+  {
+   "mf_id": "33",
+   "name": "Sundaram Mutual Fund",
+   "slug": "sundaram",
+   "url": "https://www.sundarammutual.com/Monthly-Fortnightly-Adhoc-Portfolios"
+  },
+  {
+   "mf_id": "25",
+   "name": "Tata Mutual Fund",
+   "slug": "tata",
+   "url": "https://www.tatamutualfund.com/schemes-related"
+  },
+  {
+   "mf_id": "26",
+   "name": "Taurus Mutual Fund",
+   "slug": "taurus",
+   "url": "https://taurusmutualfund.com/monthly-portfolio"
+  },
+  {
+   "mf_id": "72",
+   "name": "Trust Mutual Fund",
+   "slug": "trust",
+   "url": "https://www.trustmf.com/disclosures?activeTab=portfolio-disclosures"
+  },
+  {
+   "mf_id": "79",
+   "name": "Unifi Mutual Fund",
+   "slug": "unifi",
+   "url": "https://unifimf.com/statutorydocuments/#monthly-portfolio-disclosure"
+  },
+  {
+   "mf_id": "61",
+   "name": "Union Mutual Fund",
+   "slug": "union",
+   "url": "https://www.unionmf.com/about-us/downloads/monthly-portfolio"
+  },
+  {
+   "mf_id": "28",
+   "name": "UTI Mutual Fund",
+   "slug": "uti",
+   "url": "https://www.utimf.com/downloads/consolidate-all-portfolio-disclosure",
+   "note": "Page needs a year and month picked before it shows the file; use the inbox folder if the robot cannot get it."
+  },
+  {
+   "mf_id": "83",
+   "name": "The Wealth Company Mutual Fund",
+   "slug": "the-wealth-company",
+   "url": "https://www.wealthcompanyamc.in/literature-forms/portfolio-documents/monthly/"
+  },
+  {
+   "mf_id": "71",
+   "name": "WhiteOak Capital Mutual Fund",
+   "slug": "whiteoak-capital",
+   "url": "https://mf.whiteoakamc.com/regulatory-disclosures/scheme-portfolios"
+  },
+  {
+   "mf_id": "77",
+   "name": "Zerodha CASE Mutual Fund",
+   "slug": "zerodha-case",
+   "url": "https://www.zerodhafundhouse.com/resources/disclosures"
+  }
+ ]
+}
