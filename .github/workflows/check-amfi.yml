@@ -3,6 +3,9 @@ name: Check AMFI sources
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
