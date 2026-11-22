@@ -1,0 +1,31 @@
+name: Check portfolio sources
+
+on:
+  workflow_dispatch:
+    inputs:
+      fund_house:
+        description: "Only this fund house (part of its name, e.g. hdfc). Leave empty for all."
+        required: false
+        default: ""
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: AMFI risk data (mid and small cap)
+        run: python scripts/amfi_risk.py diagnose
+        continue-on-error: true
+      - name: AMFI market-cap list
+        run: python scripts/portfolio_fetch.py marketcap
+        continue-on-error: true
+      - name: What the robot finds on each fund house page (downloads nothing)
+        run: python scripts/portfolio_fetch.py diagnose "${{ github.event.inputs.fund_house }}"
