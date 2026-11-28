@@ -64,6 +64,112 @@ jobs:
               print("Parser now reads AMFI's Plan and Option columns")
           PY
 
+      - name: Fixes for AMFI's new category names, NAV dates and history
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+
+          def patch(path, pairs, marker):
+              p = Path(path)
+              s = p.read_text()
+              if marker in s:
+                  print(path, "already fixed")
+                  return
+              for old, new in pairs:
+                  assert s.count(old) == 1, f"{path}: text not found: {old[:60]!r}"
+                  s = s.replace(old, new)
+              p.write_text(s)
+              print(path, "fixed")
+
+
+          # 1) NAV history: fetch every 90-day piece again with the full fund list. Pieces fetched while
+          #    AMFI's new file layout was not read properly were marked done with most funds missing.
+          patch("scripts/amfi_fetch.py", [
+              ('meta_get(con, "history_mf", {})', 'meta_get(con, "history_mf2", {})'),
+              ('meta_set(con, "history_mf", done_mf)', 'meta_set(con, "history_mf2", done_mf)'),
+          ], "history_mf2")
+
+          # 2) One name per category: AMFI now mixes old names ("Equity Scheme - Large Cap Fund") and new
+          #    ones ("Equity Schemes - Large Cap Fund", "Income/Debt Oriented Schemes - Short Term Fund").
+          CANON = r'''
+
+          _CANON_SUB = {
+              "Equity Scheme": [("elss", "ELSS (Tax Saver)"), ("sectoral", "Sectoral / Thematic Fund"),
+                                ("thematic", "Sectoral / Thematic Fund"), ("large & mid", "Large & Mid Cap Fund"),
+                                ("large and mid", "Large & Mid Cap Fund")],
+              "Debt Scheme": [("overnight", "Overnight Fund"), ("liquid", "Liquid Fund"),
+                              ("money market", "Money Market Fund"), ("ultra short to short", "Ultra Short to Short Term Fund"),
+                              ("ultra short", "Ultra Short Term Fund"), ("medium to long", "Medium to Long Term Fund"),
+                              ("medium", "Medium Term Fund"), ("low duration", "Low Duration Fund"),
+                              ("long", "Long Term Fund"), ("short", "Short Term Fund"), ("dynamic", "Dynamic Term Fund"),
+                              ("corporate bond", "Corporate Bond Fund"), ("credit risk", "Credit Risk Fund"),
+                              ("banking", "Banking and PSU Debt Fund"), ("10", "10-year Constant Maturity Gilt Fund"),
+                              ("gilt", "Gilt Fund"), ("float", "Floating Interest Rates Fund"),
+                              ("sectoral", "Sectoral Debt Fund")],
+              "Hybrid Scheme": [("balanced advantage", "Balanced Advantage / Dynamic Asset Allocation"),
+                                ("dynamic asset", "Balanced Advantage / Dynamic Asset Allocation"),
+                                ("multi asset", "Multi Asset Allocation Fund"), ("equity savings", "Equity Savings Fund"),
+                                ("arbitrage", "Arbitrage Fund"), ("conservative", "Conservative Hybrid Fund"),
+                                ("aggressive", "Aggressive Hybrid Fund"), ("balanced hybrid", "Balanced Hybrid Fund")],
+              "Solution Oriented Scheme": [("retire", "Retirement Fund"), ("child", "Children’s Fund")],
+          }
+
+
+          def canon_category(category: str) -> str:
+              """One name for each category, whether AMFI's file uses the old or the new category names."""
+              g, s = split_category(category)
+              gl = re.sub(r"[^a-z/ ]", "", g.lower()).strip()
+              if gl.startswith("equity scheme"):
+                  g = "Equity Scheme"
+              elif gl.startswith("debt scheme") or gl.startswith("income/debt"):
+                  g = "Debt Scheme"
+              elif gl.startswith("hybrid scheme"):
+                  g = "Hybrid Scheme"
+              elif gl.startswith("solution oriented"):
+                  g = "Solution Oriented Scheme"
+              elif gl.startswith("children"):
+                  g, s = "Solution Oriented Scheme", "Children’s Fund"
+              elif gl.startswith("index fund"):
+                  g, s = "Other Scheme", "Index Funds"
+              elif gl.startswith("fund of funds") and "domestic" in gl:
+                  g, s = "Other Scheme", "FoF Domestic"
+              elif "overseas" in gl and "fund of funds" in gl:
+                  g, s = "Other Scheme", "FoF Overseas"
+              else:
+                  return category
+              sl = s.lower()
+              for key, name in _CANON_SUB.get(g, []):
+                  if key in sl:
+                      s = name
+                      break
+              return f"{g} - {s}"
+          '''
+
+          patch("scripts/common.py", [
+              ('''    "Debt": ["overnight", "liquid", "ultra short", "low duration", "money market",
+                       "short duration", "medium duration", "medium to long", "long duration",
+                       "dynamic bond", "corporate bond", "credit risk", "banking and psu", "banking & psu",
+                       "gilt fund with 10", "gilt", "floater", "sectoral debt"],''',
+               '''    "Debt": ["overnight", "liquid", "ultra short to short", "ultra short", "low duration", "money market",
+                       "short term", "medium term", "medium to long", "long term", "dynamic", "corporate bond",
+                       "credit risk", "banking", "10-year", "gilt", "floating", "sectoral"],'''),
+              ("\n\ndef group_of(category: str) -> str:", CANON + "\n\ndef group_of(category: str) -> str:"),
+          ], "def canon_category")
+
+          # 3) Build: use the one category name, and take the NAV date most funds have. Liquid and overnight
+          #    funds also publish NAVs for the coming weekend, which made every 1, 3 and 5 year return blank.
+          patch("scripts/build_data.py", [
+              ("from common import (DATA,", "from common import (canon_category, DATA,"),
+              ('    sample = (RAW / "SAMPLE").exists()\n',
+               '    for s in latest:\n        s["category"] = canon_category(s["category"])\n'
+               '    sample = (RAW / "SAMPLE").exists()\n'),
+              ('    data_date = max(dt.date.fromisoformat(s["date"]) for s in latest)\n',
+               '    _dc = defaultdict(int)\n    for s in latest:\n        _dc[s["date"]] += 1\n'
+               '    data_date = dt.date.fromisoformat(max(_dc, key=lambda k: (_dc[k], k)))\n'),
+          ], "canon_category(s[")
+          PY
+
       - name: Restore saved NAV history
         uses: actions/cache/restore@v6
         with:
