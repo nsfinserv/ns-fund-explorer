@@ -1,0 +1,154 @@
+name: Private fund analysis (RK only)
+
+# Runs ONLY when started by hand: Actions > Private fund analysis > Run workflow.
+# It never runs on a schedule and never publishes to any website
+# (no GitHub Pages step, nothing to Netlify or nsfinancialservices.co.in).
+# The finished data is locked (encrypted) so only Claude can open it, and saved
+# to the "private-analysis" branch. Claude turns it into a private page for RK.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # only to save the locked data file to the private-analysis branch
+
+concurrency:
+  group: private-analysis
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Read AMFI's new Plan and Option columns
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("scripts/common.py")
+          s = p.read_text()
+          if "_with_plan_option" in s:
+              print("Parser already reads AMFI's Plan and Option columns")
+          else:
+              I, J = " " * 20, " " * 24
+              old_a = I + 'elif "scheme name" in h:\n' + J + 'cols["name"] = i\n'
+              new_a = (I + 'elif "scheme name" in h or h == "nav name":\n' + J + 'cols["name"] = i\n'
+                       + I + 'elif h == "plan":\n' + J + 'cols["plan"] = i\n'
+                       + I + 'elif h == "option":\n' + J + 'cols["option"] = i\n')
+              old_b = 're.sub(r"\\s+", " ", parts[cols["name"]]).strip() if "name" in cols else ""'
+              new_b = '_with_plan_option(parts, cols)'
+              helper = r'''def _with_plan_option(parts: list[str], cols: dict[str, int]) -> str:
+              """Scheme name plus AMFI's separate Plan and Option columns, when the name does not say them."""
+              get = lambda k: re.sub(r"\s+", " ", parts[cols[k]]).strip() if k in cols and cols[k] < len(parts) else ""  # noqa: E731
+              name, plan, option = get("name"), get("plan"), get("option")
+              low = name.lower()
+              if plan and not re.search(r"\b(direct|regular)\b", low):
+                  name += " - " + (plan if re.search(r"\bplan\b", plan, re.I) else plan + " Plan")
+              if option and not re.search(r"growth|idcw|dividend|bonus|payout", low):
+                  name += " - " + option
+              return name
+          '''
+              assert s.count(old_a) == 1 and s.count(old_b) == 1, "parser patch: text not found"
+              s = s.replace(old_a, new_a).replace(old_b, new_b)
+              s = s.replace("def parse_nav_text(text: str):", helper + "\n\ndef parse_nav_text(text: str):", 1)
+              p.write_text(s)
+              print("Parser now reads AMFI's Plan and Option columns")
+          PY
+
+      - name: Restore saved NAV history
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            data/store
+            data/raw
+          key: navstore-${{ github.run_id }}
+          restore-keys: navstore-
+
+      - name: Download today's data from AMFI
+        run: python scripts/amfi_fetch.py daily
+
+      - name: AMFI risk data for mid and small cap funds
+        run: python scripts/amfi_risk.py
+        continue-on-error: true
+
+      - name: Portfolios - which fund houses still need last month's file
+        id: pf
+        run: python scripts/portfolio_fetch.py pending
+        continue-on-error: true
+
+      - name: Portfolios - download from fund house websites
+        if: steps.pf.outputs.pending != '0'
+        run: |
+          python -m playwright install --with-deps chromium
+          python scripts/portfolio_fetch.py
+        env:
+          PF_MINUTES: "40"
+        timeout-minutes: 55
+        continue-on-error: true
+
+      - name: Portfolios - read the files (and anything in portfolios/inbox)
+        run: python scripts/portfolio_parse.py --all
+        continue-on-error: true
+
+      - name: Fill in older NAV history (continues where it stopped)
+        run: python scripts/amfi_fetch.py history --minutes 200
+        continue-on-error: true
+
+      - name: Save NAV history
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            data/store
+            data/raw
+          key: navstore-${{ github.run_id }}
+
+      - name: Build the analysis data
+        run: python scripts/build_data.py
+
+      - name: Lock the data so only Claude can open it
+        run: |
+          cat > /tmp/claude-public.pem <<'KEY'
+          -----BEGIN PUBLIC KEY-----
+          MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAlhjPBJGNUvntWJ//A+1B
+          9PIQGeq24PW3QscollyLJZ8cX98TsXlViKo95XxBm5ShdlshUWPV5sS186zUHS8i
+          r88+5Dj7iLhoqdC94g5luL/sJA1jCeWLh+BZQSNuG8h8b99gdDke16Ew0V5Lb2/m
+          Z6zTX6oHocUABOl8Q/pWfX3979A4IlGhnmsq/iFNw09DoOur+tIRW7PoGLEEnsUV
+          3SpeKvOVz6wxKF825h6bnVlecUsA6CD+beRgaJvjn0pDULJyBNg0EZsgdTf2+W5j
+          1auj+QHkQptkDBgHQ5OphNBSAimZN05o8sECrug3wPYGkI1wEulAAD8bNW1eewVr
+          2n9h98kCLHMPFqtoxliLsF74EiC5RTrq1FDYOxjIyUkyBwuhQi/k6ebzFU4MPFxp
+          Uh7dUSL8Z1LN8pHC6QD/mPPegZMveCuno9n8PrXyOf9YXhC3gqiqy1sG/aHPymAP
+          gYIBGGWxGMH1VY3ccxNQpp3c3L3ElVKSbzKfFRGJunhXZH72pClja/gK5+M7anO4
+          sAbsSyK/q6nDyJnzyxf+RmNARUHIBMNYZn0/iL5tqr4nJSNXvPONmLa/ijiIp/DM
+          LPhEK7eH9PDeErNchp4DGWCTToEJvHlpVfIZ59gPHh7sTN53SWggO4HXJKlFRACn
+          j3ivkE9vmNKN/hg+CwAVSBECAwEAAQ==
+          -----END PUBLIC KEY-----
+          KEY
+          tar -czf /tmp/data.tgz -C site data
+          openssl rand -out /tmp/k.bin 32
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/data.tgz -out /tmp/data.tgz.enc -pass file:/tmp/k.bin
+          openssl pkeyutl -encrypt -pubin -inkey /tmp/claude-public.pem -pkeyopt rsa_padding_mode:oaep -in /tmp/k.bin -out /tmp/key.enc
+          rm -f /tmp/k.bin /tmp/data.tgz
+          ls -l /tmp/data.tgz.enc /tmp/key.enc
+
+      - name: Save the locked file to the private-analysis branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir /tmp/locked && cd /tmp/locked
+          git init -q -b private-analysis
+          cp /tmp/data.tgz.enc /tmp/key.enc .
+          printf 'Locked (encrypted) fund analysis data for Claude. Not a website.\nBuilt: %s\n' "$(date -u)" > README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add . && git commit -qm "Locked fund analysis data"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" private-analysis
